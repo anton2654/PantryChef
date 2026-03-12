@@ -9,4 +9,26 @@ x86/
 bin/
 obj/
 
-wwwroot/lib/
+PantryChef.Web/wwwroot/lib/
+
+*.log
+
+*.vspscc
+*.vssscc
+.vscode/
+
+packages/
+*.nupkg
+*.snupkg
+
+.env
+.env.*
+
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+publish/
+
+appsettings.json
+appsettings.Development.json
