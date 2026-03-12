@@ -1,5 +1,12 @@
 .vs/
 [Bb]in/
 [Oo]bj/
+x64/
+x86/
 *.user
 *.suo
+
+bin/
+obj/
+
+wwwroot/lib/

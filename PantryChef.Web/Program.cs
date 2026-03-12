@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PantryChef.Data.Context;
-using Serilog; // дндюмн
+using Serilog; 
 
 namespace PantryChef.Web
 {
