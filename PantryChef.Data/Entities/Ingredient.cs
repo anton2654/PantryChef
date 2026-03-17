@@ -7,14 +7,8 @@ namespace PantryChef.Data.Entities
     {
         [Column("id")]
         public int Id { get; set; }
-
-        [Column("name")]
-        public string Name { get; set; }
-
-        [Column("category")]
-        public string Category { get; set; }
-
-        [Column("calories")]
+        public required string Name { get; set; }
+        public required string Category { get; set; }
         public double Calories { get; set; }
 
         [Column("proteins")]
@@ -29,7 +23,7 @@ namespace PantryChef.Data.Entities
         [Column("photo")]
         public string Photo { get; set; }
 
-        public virtual ICollection<UserIngredient> UserIngredients { get; set; }
-        public virtual ICollection<RecipeIngredient> RecipeIngredients { get; set; }
+        public virtual ICollection<UserIngredient> UserIngredients { get; set; } = new List<UserIngredient>();
+        public virtual ICollection<RecipeIngredient> RecipeIngredients { get; set; } = new List<RecipeIngredient>();
     }
 }

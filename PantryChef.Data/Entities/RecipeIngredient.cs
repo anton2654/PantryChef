@@ -18,7 +18,7 @@ namespace PantryChef.Data.Entities
         [Column("quantity")] 
         public double Quantity { get; set; }
 
-        public virtual Recipe Recipe { get; set; }
-        public virtual Ingredient Ingredient { get; set; }
+        public virtual Recipe Recipe { get; set; } = null!;
+        public virtual Ingredient Ingredient { get; set; } = null!;
     }
 }

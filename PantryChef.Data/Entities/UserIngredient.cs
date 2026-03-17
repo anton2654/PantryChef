@@ -7,7 +7,7 @@
         public int IngredientId { get; set; }
         public double Quantity { get; set; }
         
-        public virtual User User { get; set; }
-        public virtual Ingredient Ingredient { get; set; }
+        public virtual User User { get; set; } = null!;
+        public virtual Ingredient Ingredient { get; set; } = null!;
     }
 }
