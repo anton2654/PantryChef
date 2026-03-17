@@ -1,0 +1,56 @@
+﻿@model IEnumerable<PantryChef.Data.Entities.Recipe>
+
+@{
+    ViewData["Title"] = "Страви";
+}
+
+<div class="container mt-4">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-3" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex gap-2 flex-wrap">
+            <button class="btn btn-outline-secondary rounded-pill px-4 active">Всі</button>
+            <button class="btn btn-light rounded-pill px-3">М'ясні продукти</button>
+            <button class="btn btn-light rounded-pill px-3">Випічка</button>
+        </div>
+    </div>
+
+    <div class="row row-cols-1 row-cols-md-3 row-cols-lg-5 g-4">
+        @foreach (var recipe in Model)
+        {
+            <div class="col">
+                @* Додаємо position-relative, щоб картка стала повністю клікабельною *@
+                <div class="card h-100 border-0 shadow-sm position-relative" style="border-radius: 12px; background-color: #fcfcfc;">
+
+                    @* Блок для фотографії з бази даних *@
+                    <div style="height: 150px; overflow: hidden; border-top-left-radius: 12px; border-top-right-radius: 12px; background-color: #d9d9d9;">
+                        @if (!string.IsNullOrEmpty(recipe.Photo))
+                        {
+                            <img src="@recipe.Photo" alt="@recipe.Name" class="w-100 h-100" style="object-fit: cover;" />
+                        }
+                    </div>
+
+                    <div class="card-body d-flex flex-column">
+                        <h6 class="card-title fw-bold mb-1">@recipe.Name</h6>
+
+                        @* Виводимо шматочок опису (перші 50 символів), щоб картки були однакової висоти *@
+                        <p class="card-text text-muted" style="font-size: 0.8rem;">
+                            @(recipe.Description != null && recipe.Description.Length > 50
+                                ? recipe.Description.Substring(0, 50) + "..."
+                                : recipe.Description)
+                        </p>
+
+                        @* Цей клас stretched-link робить усю картку клікабельною. Вона веде на метод Details *@
+                        <a asp-controller="Recipe" asp-action="Details" asp-route-id="@recipe.Id" class="stretched-link"></a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>

@@ -15,6 +15,8 @@ namespace PantryChef.Web.Controllers
 
         public IActionResult Index()
         {
+            _logger.LogInformation("Користувач відкрив головну сторінку PantryChef.");
+
             return View();
         }
 

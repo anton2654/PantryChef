@@ -3,10 +3,8 @@ using PantryChef.Data.Entities;
 
 namespace PantryChef.Data.Context
 {
-    public class PantryChefDbContext : DbContext
+    public class PantryChefDbContext(DbContextOptions<PantryChefDbContext> options) : DbContext(options)
     {
-        public PantryChefDbContext(DbContextOptions<PantryChefDbContext> options) : base(options) { }
-
         public DbSet<User> Users { get; set; }
         public DbSet<Ingredient> Ingredients { get; set; }
         public DbSet<Recipe> Recipes { get; set; }
