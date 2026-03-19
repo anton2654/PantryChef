@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PantryChef.Data.Context;
@@ -11,9 +12,11 @@ using PantryChef.Data.Context;
 namespace PantryChef.Data.Migrations
 {
     [DbContext(typeof(PantryChefDbContext))]
-    partial class PantryChefDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260319202637_ExpandMockDataSeed")]
+    partial class ExpandMockDataSeed
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -342,72 +345,6 @@ namespace PantryChef.Data.Migrations
                             Name = "Oats",
                             Photo = "oats.jpg",
                             Proteins = 17.0
-                        },
-                        new
-                        {
-                            Id = 9,
-                            Calories = 208.0,
-                            Carbohydrates = 0.0,
-                            Category = "Fish",
-                            Fats = 13.0,
-                            Name = "Salmon Fillet",
-                            Photo = "salmon_fillet.jpg",
-                            Proteins = 20.0
-                        },
-                        new
-                        {
-                            Id = 10,
-                            Calories = 160.0,
-                            Carbohydrates = 9.0,
-                            Category = "Fruit",
-                            Fats = 15.0,
-                            Name = "Avocado",
-                            Photo = "avocado.jpg",
-                            Proteins = 2.0
-                        },
-                        new
-                        {
-                            Id = 11,
-                            Calories = 89.0,
-                            Carbohydrates = 23.0,
-                            Category = "Fruit",
-                            Fats = 0.29999999999999999,
-                            Name = "Banana",
-                            Photo = "banana.jpg",
-                            Proteins = 1.1000000000000001
-                        },
-                        new
-                        {
-                            Id = 12,
-                            Calories = 59.0,
-                            Carbohydrates = 3.6000000000000001,
-                            Category = "Dairy",
-                            Fats = 0.40000000000000002,
-                            Name = "Greek Yogurt",
-                            Photo = "greek_yogurt.jpg",
-                            Proteins = 10.0
-                        },
-                        new
-                        {
-                            Id = 13,
-                            Calories = 23.0,
-                            Carbohydrates = 3.6000000000000001,
-                            Category = "Vegetable",
-                            Fats = 0.40000000000000002,
-                            Name = "Spinach",
-                            Photo = "spinach.jpg",
-                            Proteins = 2.8999999999999999
-                        },
-                        new
-                        {
-                            Id = 14,
-                            Calories = 120.0,
-                            Carbohydrates = 21.300000000000001,
-                            Category = "Grain",
-                            Fats = 1.8999999999999999,
-                            Name = "Quinoa",
-                            Photo = "quinoa.jpg",
-                            Proteins = 4.4000000000000004
                         });
                 });
 
@@ -498,54 +435,6 @@ namespace PantryChef.Data.Migrations
                             Name = "Oatmeal",
                             Photo = "oatmeal.jpg",
                             Proteins = 12.0
-                        },
-                        new
-                        {
-                            Id = 5,
-                            Calories = 590.0,
-                            Carbohydrates = 44.0,
-                            Category = 2,
-                            Description = "Baked salmon with quinoa, spinach, and avocado.",
-                            Fats = 29.0,
-                            Name = "Salmon Quinoa Bowl",
-                            Photo = "salmon_quinoa_bowl.jpg",
-                            Proteins = 36.0
-                        },
-                        new
-                        {
-                            Id = 6,
-                            Calories = 340.0,
-                            Carbohydrates = 51.0,
-                            Category = 0,
-                            Description = "Greek yogurt layered with oats and banana slices.",
-                            Fats = 6.0,
-                            Name = "Greek Yogurt Parfait",
-                            Photo = "greek_yogurt_parfait.jpg",
-                            Proteins = 22.0
-                        },
-                        new
-                        {
-                            Id = 7,
-                            Calories = 410.0,
-                            Carbohydrates = 34.0,
-                            Category = 1,
-                            Description = "Creamy avocado and eggs served over toasted bread.",
-                            Fats = 23.0,
-                            Name = "Avocado Egg Toast",
-                            Photo = "avocado_egg_toast.jpg",
-                            Proteins = 16.0
-                        },
-                        new
-                        {
-                            Id = 8,
-                            Calories = 280.0,
-                            Carbohydrates = 6.0,
-                            Category = 3,
-                            Description = "Protein-rich omelette with spinach and garlic.",
-                            Fats = 19.0,
-                            Name = "Spinach Omelette",
-                            Photo = "spinach_omelette.jpg",
-                            Proteins = 20.0
                         });
                 });
 
@@ -646,111 +535,6 @@ namespace PantryChef.Data.Migrations
                             IngredientId = 7,
                             Id = 0,
                             Quantity = 200.0
-                        },
-                        new
-                        {
-                            RecipeId = 5,
-                            IngredientId = 9,
-                            Id = 0,
-                            Quantity = 180.0
-                        },
-                        new
-                        {
-                            RecipeId = 5,
-                            IngredientId = 14,
-                            Id = 0,
-                            Quantity = 120.0
-                        },
-                        new
-                        {
-                            RecipeId = 5,
-                            IngredientId = 13,
-                            Id = 0,
-                            Quantity = 70.0
-                        },
-                        new
-                        {
-                            RecipeId = 5,
-                            IngredientId = 10,
-                            Id = 0,
-                            Quantity = 80.0
-                        },
-                        new
-                        {
-                            RecipeId = 5,
-                            IngredientId = 5,
-                            Id = 0,
-                            Quantity = 8.0
-                        },
-                        new
-                        {
-                            RecipeId = 6,
-                            IngredientId = 12,
-                            Id = 0,
-                            Quantity = 200.0
-                        },
-                        new
-                        {
-                            RecipeId = 6,
-                            IngredientId = 8,
-                            Id = 0,
-                            Quantity = 40.0
-                        },
-                        new
-                        {
-                            RecipeId = 6,
-                            IngredientId = 11,
-                            Id = 0,
-                            Quantity = 100.0
-                        },
-                        new
-                        {
-                            RecipeId = 7,
-                            IngredientId = 10,
-                            Id = 0,
-                            Quantity = 100.0
-                        },
-                        new
-                        {
-                            RecipeId = 7,
-                            IngredientId = 2,
-                            Id = 0,
-                            Quantity = 2.0
-                        },
-                        new
-                        {
-                            RecipeId = 7,
-                            IngredientId = 5,
-                            Id = 0,
-                            Quantity = 5.0
-                        },
-                        new
-                        {
-                            RecipeId = 8,
-                            IngredientId = 2,
-                            Id = 0,
-                            Quantity = 3.0
-                        },
-                        new
-                        {
-                            RecipeId = 8,
-                            IngredientId = 13,
-                            Id = 0,
-                            Quantity = 60.0
-                        },
-                        new
-                        {
-                            RecipeId = 8,
-                            IngredientId = 6,
-                            Id = 0,
-                            Quantity = 5.0
-                        },
-                        new
-                        {
-                            RecipeId = 8,
-                            IngredientId = 5,
-                            Id = 0,
-                            Quantity = 5.0
                         });
                 });
 
@@ -908,48 +692,6 @@ namespace PantryChef.Data.Migrations
                             Id = 9,
                             IngredientId = 7,
                             Quantity = 500.0,
-                            UserId = 3
-                        },
-                        new
-                        {
-                            Id = 10,
-                            IngredientId = 10,
-                            Quantity = 3.0,
-                            UserId = 1
-                        },
-                        new
-                        {
-                            Id = 11,
-                            IngredientId = 13,
-                            Quantity = 200.0,
-                            UserId = 1
-                        },
-                        new
-                        {
-                            Id = 12,
-                            IngredientId = 11,
-                            Quantity = 6.0,
-                            UserId = 2
-                        },
-                        new
-                        {
-                            Id = 13,
-                            IngredientId = 12,
-                            Quantity = 400.0,
-                            UserId = 2
-                        },
-                        new
-                        {
-                            Id = 14,
-                            IngredientId = 9,
-                            Quantity = 350.0,
-                            UserId = 3
-                        },
-                        new
-                        {
-                            Id = 15,
-                            IngredientId = 14,
-                            Quantity = 250.0,
                             UserId = 3
                         });
                 });
