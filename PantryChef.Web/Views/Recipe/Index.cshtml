@@ -1,4 +1,4 @@
-﻿@model IEnumerable<PantryChef.Data.Entities.Recipe>
+﻿@model PantryChef.Web.Models.RecipeIndexViewModel
 
 @{
     ViewData["Title"] = "Страви";
@@ -13,16 +13,33 @@
         </div>
     }
 
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-warning alert-dismissible fade show rounded-3" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div class="d-flex gap-2 flex-wrap">
-            <button class="btn btn-outline-secondary rounded-pill px-4 active">Всі</button>
-            <button class="btn btn-light rounded-pill px-3">М'ясні продукти</button>
-            <button class="btn btn-light rounded-pill px-3">Випічка</button>
+            @foreach (var category in Model.Categories)
+            {
+                var url = string.IsNullOrWhiteSpace(category.Value)
+                    ? Url.Action("Filter", "Recipe")
+                    : Url.Action("Filter", "Recipe", new { category = category.Value });
+
+                var buttonClass = category.IsSelected
+                    ? "btn btn-outline-secondary rounded-pill px-4 active"
+                    : "btn btn-light rounded-pill px-3";
+
+                <a class="@buttonClass" href="@url">@category.Label</a>
+            }
         </div>
     </div>
 
     <div class="row row-cols-1 row-cols-md-3 row-cols-lg-5 g-4">
-        @foreach (var recipe in Model)
+        @foreach (var recipe in Model.Recipes)
         {
             <div class="col">
                 <div class="card h-100 border-0 shadow-sm position-relative" style="border-radius: 12px; background-color: #fcfcfc;">

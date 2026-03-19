@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PantryChef.Data.Context;
@@ -11,9 +12,11 @@ using PantryChef.Data.Context;
 namespace PantryChef.Data.Migrations
 {
     [DbContext(typeof(PantryChefDbContext))]
-    partial class PantryChefDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260319202802_AddMoreMockData")]
+    partial class AddMoreMockData
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -575,7 +578,7 @@ namespace PantryChef.Data.Migrations
                             RecipeId = 1,
                             IngredientId = 2,
                             Id = 0,
-                            Quantity = 150.0
+                            Quantity = 3.0
                         },
                         new
                         {
@@ -715,7 +718,7 @@ namespace PantryChef.Data.Migrations
                             RecipeId = 7,
                             IngredientId = 2,
                             Id = 0,
-                            Quantity = 100.0
+                            Quantity = 2.0
                         },
                         new
                         {
@@ -729,7 +732,7 @@ namespace PantryChef.Data.Migrations
                             RecipeId = 8,
                             IngredientId = 2,
                             Id = 0,
-                            Quantity = 150.0
+                            Quantity = 3.0
                         },
                         new
                         {
