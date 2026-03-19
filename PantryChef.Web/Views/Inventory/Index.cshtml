@@ -1,0 +1,30 @@
+@model IEnumerable<PantryChef.Data.Entities.UserIngredient>
+
+@{
+    ViewData["Title"] = "Мій Холодильник";
+}
+
+<div class="container mt-4">
+    <h2 class="mb-4">Мій Холодильник</h2>
+
+    <div class="row row-cols-1 row-cols-md-3 row-cols-lg-5 g-4">
+        @foreach (var item in Model)
+        {
+            <div class="col">
+                <div class="card h-100 border-0 shadow-sm" style="border-radius: 12px; background-color: #fcfcfc;">
+                    <div style="height: 150px; overflow: hidden; border-top-left-radius: 12px; border-top-right-radius: 12px; background-color: #d9d9d9;">
+                        @if (!string.IsNullOrEmpty(item.Ingredient.Photo))
+                        {
+                            <img src="@item.Ingredient.Photo" alt="@item.Ingredient.Name" class="w-100 h-100" style="object-fit: cover;" />
+                        }
+                    </div>
+                    <div class="card-body text-center">
+                        <h6 class="card-title fw-bold mb-1">@item.Ingredient.Name</h6>
+                        <p class="text-muted small mb-0">Категорія: @item.Ingredient.Category</p>
+                        <p class="fw-bold mt-2 text-success">Залишок: @item.Quantity г/шт</p>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
