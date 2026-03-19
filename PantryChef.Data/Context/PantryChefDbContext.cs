@@ -132,7 +132,7 @@ namespace PantryChef.Data.Context
 
             modelBuilder.Entity<RecipeIngredient>().HasData(
                 // Scrambled Eggs: eggs + olive oil
-                new RecipeIngredient { RecipeId = 1, IngredientId = 2, Quantity = 3 },
+                new RecipeIngredient { RecipeId = 1, IngredientId = 2, Quantity = 150 },
                 new RecipeIngredient { RecipeId = 1, IngredientId = 5, Quantity = 10 },
                 // Pasta Pomodoro: pasta + tomato + garlic + olive oil
                 new RecipeIngredient { RecipeId = 2, IngredientId = 4, Quantity = 100 },
@@ -158,10 +158,10 @@ namespace PantryChef.Data.Context
                 new RecipeIngredient { RecipeId = 6, IngredientId = 11, Quantity = 100 },
                 // Avocado Egg Toast: avocado + eggs + olive oil
                 new RecipeIngredient { RecipeId = 7, IngredientId = 10, Quantity = 100 },
-                new RecipeIngredient { RecipeId = 7, IngredientId = 2, Quantity = 2 },
+                new RecipeIngredient { RecipeId = 7, IngredientId = 2, Quantity = 100 },
                 new RecipeIngredient { RecipeId = 7, IngredientId = 5, Quantity = 5 },
                 // Spinach Omelette: eggs + spinach + garlic + olive oil
-                new RecipeIngredient { RecipeId = 8, IngredientId = 2, Quantity = 3 },
+                new RecipeIngredient { RecipeId = 8, IngredientId = 2, Quantity = 150 },
                 new RecipeIngredient { RecipeId = 8, IngredientId = 13, Quantity = 60 },
                 new RecipeIngredient { RecipeId = 8, IngredientId = 6, Quantity = 5 },
                 new RecipeIngredient { RecipeId = 8, IngredientId = 5, Quantity = 5 }
