@@ -16,5 +16,10 @@ namespace PantryChef.Data.Repositories
         {
             return await _dbSet.FirstOrDefaultAsync(u => u.Email == email);
         }
+
+        public async Task<User> GetByIdentityUserIdAsync(string identityUserId)
+        {
+            return await _dbSet.FirstOrDefaultAsync(u => u.IdentityUserId == identityUserId);
+        }
     }
 }

@@ -10,6 +10,9 @@ namespace PantryChef.Data.Entities
         public required string Name { get; set; }
         public int CalorieGoals { get; set; }
         public required string Allergies { get; set; }
+        public string IdentityUserId { get; set; }
+
+        public virtual ApplicationUser IdentityUser { get; set; }
 
         public virtual ICollection<UserIngredient> UserIngredients { get; set; } = new List<UserIngredient>();
     }

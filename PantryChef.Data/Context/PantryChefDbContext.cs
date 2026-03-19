@@ -1,11 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using PantryChef.Data.Entities;
 
 namespace PantryChef.Data.Context
 {
-    public class PantryChefDbContext(DbContextOptions<PantryChefDbContext> options) : DbContext(options)
+    public class PantryChefDbContext(DbContextOptions<PantryChefDbContext> options) : IdentityDbContext<ApplicationUser>(options)
     {
-        public DbSet<User> Users { get; set; }
+        public new DbSet<User> Users { get; set; }
         public DbSet<Ingredient> Ingredients { get; set; }
         public DbSet<Recipe> Recipes { get; set; }
         public DbSet<RecipeIngredient> RecipeIngredients { get; set; }
@@ -13,12 +14,43 @@ namespace PantryChef.Data.Context
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            base.OnModelCreating(modelBuilder);
+
             modelBuilder.Entity<RecipeIngredient>()
                 .HasKey(ri => new { ri.RecipeId, ri.IngredientId });
 
-            modelBuilder.Entity<User>().ToTable("User");
-            modelBuilder.Entity<Ingredient>().ToTable("ingredient");
-            modelBuilder.Entity<Recipe>().ToTable("recipe");
+            modelBuilder.Entity<User>(entity =>
+            {
+                entity.ToTable("User");
+                entity.Property(user => user.Email).IsRequired();
+                entity.Property(user => user.Password).IsRequired();
+                entity.Property(user => user.Name).IsRequired();
+                entity.Property(user => user.Allergies).IsRequired();
+                entity.HasIndex(user => user.IdentityUserId).IsUnique();
+                entity
+                    .HasOne(user => user.IdentityUser)
+                    .WithOne(identityUser => identityUser.DomainUser)
+                    .HasForeignKey<User>(user => user.IdentityUserId)
+                    .HasPrincipalKey<ApplicationUser>(identityUser => identityUser.Id)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<Ingredient>(entity =>
+            {
+                entity.ToTable("ingredient");
+                entity.Property(ingredient => ingredient.Name).IsRequired();
+                entity.Property(ingredient => ingredient.Category).IsRequired();
+                entity.Property(ingredient => ingredient.Photo).IsRequired();
+            });
+
+            modelBuilder.Entity<Recipe>(entity =>
+            {
+                entity.ToTable("recipe");
+                entity.Property(recipe => recipe.Name).IsRequired();
+                entity.Property(recipe => recipe.Description).IsRequired();
+                entity.Property(recipe => recipe.Photo).IsRequired();
+            });
+
             modelBuilder.Entity<RecipeIngredient>().ToTable("recipe_ingredient");
             modelBuilder.Entity<UserIngredient>().ToTable("user_ingredient");
 
@@ -100,8 +132,6 @@ namespace PantryChef.Data.Context
                 new UserIngredient { Id = 8, UserId = 3, IngredientId = 8, Quantity = 500 },
                 new UserIngredient { Id = 9, UserId = 3, IngredientId = 7, Quantity = 500 }
             );
-
-            base.OnModelCreating(modelBuilder);
         }
     }
 }

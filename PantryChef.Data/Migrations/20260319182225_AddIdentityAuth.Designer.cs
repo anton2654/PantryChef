@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PantryChef.Data.Context;
@@ -11,9 +12,11 @@ using PantryChef.Data.Context;
 namespace PantryChef.Data.Migrations
 {
     [DbContext(typeof(PantryChefDbContext))]
-    partial class PantryChefDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260319182225_AddIdentityAuth")]
+    partial class AddIdentityAuth
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -554,9 +557,6 @@ namespace PantryChef.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("IdentityUserId")
-                        .HasColumnType("text");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
@@ -566,9 +566,6 @@ namespace PantryChef.Data.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("IdentityUserId")
-                        .IsUnique();
 
                     b.ToTable("User", (string)null);
 
@@ -763,16 +760,6 @@ namespace PantryChef.Data.Migrations
                     b.Navigation("Recipe");
                 });
 
-            modelBuilder.Entity("PantryChef.Data.Entities.User", b =>
-                {
-                    b.HasOne("PantryChef.Data.Entities.ApplicationUser", "IdentityUser")
-                        .WithOne("DomainUser")
-                        .HasForeignKey("PantryChef.Data.Entities.User", "IdentityUserId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
-                    b.Navigation("IdentityUser");
-                });
-
             modelBuilder.Entity("PantryChef.Data.Entities.UserIngredient", b =>
                 {
                     b.HasOne("PantryChef.Data.Entities.Ingredient", "Ingredient")
@@ -790,11 +777,6 @@ namespace PantryChef.Data.Migrations
                     b.Navigation("Ingredient");
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("PantryChef.Data.Entities.ApplicationUser", b =>
-                {
-                    b.Navigation("DomainUser");
                 });
 
             modelBuilder.Entity("PantryChef.Data.Entities.Ingredient", b =>
