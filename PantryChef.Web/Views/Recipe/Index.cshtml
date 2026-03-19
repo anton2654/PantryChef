@@ -25,10 +25,8 @@
         @foreach (var recipe in Model)
         {
             <div class="col">
-                @* Додаємо position-relative, щоб картка стала повністю клікабельною *@
                 <div class="card h-100 border-0 shadow-sm position-relative" style="border-radius: 12px; background-color: #fcfcfc;">
 
-                    @* Блок для фотографії з бази даних *@
                     <div style="height: 150px; overflow: hidden; border-top-left-radius: 12px; border-top-right-radius: 12px; background-color: #d9d9d9;">
                         @if (!string.IsNullOrEmpty(recipe.Photo))
                         {
@@ -39,14 +37,12 @@
                     <div class="card-body d-flex flex-column">
                         <h6 class="card-title fw-bold mb-1">@recipe.Name</h6>
 
-                        @* Виводимо шматочок опису (перші 50 символів), щоб картки були однакової висоти *@
                         <p class="card-text text-muted" style="font-size: 0.8rem;">
                             @(recipe.Description != null && recipe.Description.Length > 50
                                 ? recipe.Description.Substring(0, 50) + "..."
                                 : recipe.Description)
                         </p>
 
-                        @* Цей клас stretched-link робить усю картку клікабельною. Вона веде на метод Details *@
                         <a asp-controller="Recipe" asp-action="Details" asp-route-id="@recipe.Id" class="stretched-link"></a>
                     </div>
                 </div>

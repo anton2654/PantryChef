@@ -15,7 +15,7 @@ namespace PantryChef.Web
 
             try
             {
-                Log.Information("������ ���-������� PantryChef...");
+                Log.Information("Запуск веб-додатка PantryChef...");
 
                 var builder = WebApplication.CreateBuilder(args);
 
@@ -52,7 +52,7 @@ namespace PantryChef.Web
             }
             catch (Exception ex)
             {
-                Log.Fatal(ex, "������� �� ��� ����������� ��������");
+                Log.Fatal(ex, "Критична помилка під час запуску програми");
             }
             finally
             {
