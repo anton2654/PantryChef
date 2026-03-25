@@ -2,10 +2,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using PantryChef.Business.Interfaces;
+using PantryChef.Business.Models;
 using PantryChef.Data.Context;
 using PantryChef.Data.Entities;
-using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -27,7 +26,7 @@ namespace PantryChef.Business.Services
             _logger = logger;
         }
 
-        public async Task<(bool Succeeded, IEnumerable<string> Errors, ApplicationUser User)> RegisterUserAsync(string email, string password, string fullName)
+        public async Task<Result<ApplicationUser>> RegisterUserAsync(string email, string password, string fullName)
         {
             var identityUser = new ApplicationUser
             {
@@ -37,26 +36,18 @@ namespace PantryChef.Business.Services
 
             await using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
-            try
-            {
-                var result = await _userManager.CreateAsync(identityUser, password);
-                if (!result.Succeeded)
-                {
-                    await transaction.RollbackAsync();
-                    return (false, result.Errors.Select(e => e.Description), null);
-                }
-
-                await EnsureDomainUserLinkedAsync(identityUser, fullName);
-
-                await transaction.CommitAsync();
-                return (true, Enumerable.Empty<string>(), identityUser);
-            }
-            catch (Exception ex)
+            var result = await _userManager.CreateAsync(identityUser, password);
+            if (!result.Succeeded)
             {
                 await transaction.RollbackAsync();
-                _logger.LogError(ex, "Failed to register user with email {Email}", email);
-                throw;
+                var errors = string.Join("\n", result.Errors.Select(e => e.Description));
+                return Result<ApplicationUser>.Failure(errors);
             }
+
+            await EnsureDomainUserLinkedAsync(identityUser, fullName);
+            await transaction.CommitAsync();
+
+            return Result<ApplicationUser>.Success(identityUser);
         }
 
         public async Task EnsureDomainUserLinkedAsync(ApplicationUser identityUser, string preferredName = null)
@@ -64,7 +55,7 @@ namespace PantryChef.Business.Services
             var existingByIdentityId = await _dbContext.Users
                 .FirstOrDefaultAsync(user => user.IdentityUserId == identityUser.Id);
 
-            if (existingByIdentityId is not null)
+            if (existingByIdentityId != null)
             {
                 return;
             }
@@ -76,7 +67,7 @@ namespace PantryChef.Business.Services
                 var existingByEmail = await _dbContext.Users
                     .FirstOrDefaultAsync(user => user.Email == identityEmail);
 
-                if (existingByEmail is not null)
+                if (existingByEmail != null)
                 {
                     existingByEmail.IdentityUserId = identityUser.Id;
 

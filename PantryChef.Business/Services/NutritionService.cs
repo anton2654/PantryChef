@@ -1,9 +1,10 @@
 ﻿using Microsoft.Extensions.Logging;
 using PantryChef.Business.Interfaces;
+using PantryChef.Business.Models;
 using PantryChef.Data.Entities;
 using PantryChef.Data.Interfaces;
 using System;
-using System.Linq; 
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace PantryChef.Business.Services
@@ -21,53 +22,42 @@ namespace PantryChef.Business.Services
             _logger = logger;
         }
 
-        public async Task UpdateRecipeNutritionAsync(int recipeId)
+        public async Task<Result> UpdateRecipeNutritionAsync(int recipeId)
         {
             _logger.LogInformation("Початок розрахунку КБЖВ для рецепта {RecipeId}", recipeId);
 
-            try
+            var recipe = await _recipeRepo.GetRecipeWithIngredientsByIdAsync(recipeId);
+
+            if (recipe == null)
             {
-                var recipe = await _recipeRepo.GetRecipeWithIngredientsByIdAsync(recipeId);
-
-                if (recipe == null)
-                {
-                    _logger.LogWarning("Рецепт з ID {RecipeId} не знайдено в базі даних.", recipeId);
-                    throw new ArgumentException($"Рецепт з ID {recipeId} не існує.");
-                }
-
-                double totalCalories = 0;
-                double totalProteins = 0;
-                double totalFats = 0;
-                double totalCarbs = 0;
-
-                foreach (var item in recipe.RecipeIngredients)
-                {
-
-                    double multiplier = item.Quantity / 100.0;
-
-                    totalCalories += item.Ingredient.Calories * multiplier;
-                    totalProteins += item.Ingredient.Proteins * multiplier;
-                    totalFats += item.Ingredient.Fats * multiplier;
-                    totalCarbs += item.Ingredient.Carbohydrates * multiplier;
-                }
-
-                recipe.Calories = Math.Round(totalCalories, 1);
-                recipe.Proteins = Math.Round(totalProteins, 1);
-                recipe.Fats = Math.Round(totalFats, 1);
-                recipe.Carbohydrates = Math.Round(totalCarbs, 1);
-
-                _recipeRepo.Update(recipe);
-                await _recipeRepo.SaveChangesAsync();
-
-                _logger.LogInformation(
-                    "Успішно оновлено КБЖВ для рецепта {RecipeId}. Калорії: {Calories}, Білки: {Proteins}, Жири: {Fats}, Вуглеводи: {Carbs}",
-                    recipeId, recipe.Calories, recipe.Proteins, recipe.Fats, recipe.Carbohydrates);
+                return Result.Failure($"Рецепт з ID {recipeId} не існує.");
             }
-            catch (Exception ex)
+
+            double totalCalories = 0;
+            double totalProteins = 0;
+            double totalFats = 0;
+            double totalCarbs = 0;
+
+            foreach (var item in recipe.RecipeIngredients)
             {
+                double multiplier = item.Quantity / 100.0;
 
-                throw new InvalidOperationException($"Критична помилка при розрахунку харчової цінності для рецепта {recipeId}.", ex);
+                totalCalories += item.Ingredient.Calories * multiplier;
+                totalProteins += item.Ingredient.Proteins * multiplier;
+                totalFats += item.Ingredient.Fats * multiplier;
+                totalCarbs += item.Ingredient.Carbohydrates * multiplier;
             }
+
+            recipe.Calories = Math.Round(totalCalories, 1);
+            recipe.Proteins = Math.Round(totalProteins, 1);
+            recipe.Fats = Math.Round(totalFats, 1);
+            recipe.Carbohydrates = Math.Round(totalCarbs, 1);
+
+            _recipeRepo.Update(recipe);
+            await _recipeRepo.SaveChangesAsync();
+
+            _logger.LogInformation("Успішно оновлено КБЖВ для рецепта {RecipeId}.", recipeId);
+            return Result.Success();
         }
 
         public (double Calories, double Proteins, double Fats, double Carbohydrates) CalculateNutrition(Recipe recipe)

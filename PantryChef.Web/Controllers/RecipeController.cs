@@ -4,7 +4,6 @@ using PantryChef.Data.Entities;
 using PantryChef.Web.Models;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace PantryChef.Web.Controllers
@@ -133,12 +132,17 @@ namespace PantryChef.Web.Controllers
                 return BadRequest();
             }
 
-            await _nutritionService.UpdateRecipeNutritionAsync(id);
+            var result = await _nutritionService.UpdateRecipeNutritionAsync(id);
+
+            if (!result.IsSuccess)
+            {
+                TempData["ErrorMessage"] = result.ErrorMessage;
+                return RedirectToAction(nameof(Details), new { id });
+            }
 
             TempData["SuccessMessage"] = "КБЖВ для рецепта успішно перераховано.";
 
             return RedirectToAction(nameof(Details), new { id });
         }
-
     }
 }

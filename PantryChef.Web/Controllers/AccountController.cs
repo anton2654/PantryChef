@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using PantryChef.Business.Interfaces;
 using PantryChef.Data.Entities;
 using PantryChef.Web.Models;
@@ -44,30 +45,21 @@ namespace PantryChef.Web.Controllers
                 return View(model);
             }
 
-            try
+            var result = await _accountService.RegisterUserAsync(model.Email, model.Password, model.FullName);
+            
+            if (!result.IsSuccess)
             {
-                var (succeeded, errors, user) = await _accountService.RegisterUserAsync(model.Email, model.Password, model.FullName);
-                
-                if (!succeeded)
+                var errors = result.ErrorMessage.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                foreach (var error in errors)
                 {
-                    foreach (var error in errors)
-                    {
-                        ModelState.AddModelError(string.Empty, error);
-                    }
-                    return View(model);
+                    ModelState.AddModelError(string.Empty, error);
                 }
-
-                _logger.LogInformation("New user registered with email {Email}", model.Email);
-                await _signInManager.SignInAsync(user, isPersistent: false);
-                return RedirectToAction("Index", "Home");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to register user with email {Email}", model.Email);
-                ModelState.AddModelError(string.Empty, "Unable to complete registration right now. Please try again.");
+                return View(model);
             }
 
-            return View(model);
+            _logger.LogInformation("New user registered with email {Email}", model.Email);
+            await _signInManager.SignInAsync(result.Data, isPersistent: false);
+            return RedirectToAction("Index", "Home");
         }
 
         [HttpGet]
@@ -91,7 +83,7 @@ namespace PantryChef.Web.Controllers
             }
 
             var user = await _userManager.FindByEmailAsync(model.Email);
-            if (user is null || string.IsNullOrWhiteSpace(user.UserName))
+            if (user == null || string.IsNullOrWhiteSpace(user.UserName))
             {
                 ModelState.AddModelError(string.Empty, "Invalid login attempt.");
                 return View(model);
@@ -105,18 +97,7 @@ namespace PantryChef.Web.Controllers
 
             if (result.Succeeded)
             {
-                try
-                {
-                    await _accountService.EnsureDomainUserLinkedAsync(user);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to sync domain user for identity account {IdentityUserId}", user.Id);
-                    await _signInManager.SignOutAsync();
-                    ModelState.AddModelError(string.Empty, "Unable to load your profile. Please try again.");
-                    return View(model);
-                }
-
+                await _accountService.EnsureDomainUserLinkedAsync(user);
                 _logger.LogInformation("User logged in with email {Email}", model.Email);
                 return RedirectToLocal(model.ReturnUrl);
             }
@@ -157,7 +138,7 @@ namespace PantryChef.Web.Controllers
             }
 
             var user = await _userManager.FindByEmailAsync(model.Email);
-            if (user is not null)
+            if (user != null)
             {
                 var token = await _userManager.GeneratePasswordResetTokenAsync(user);
                 var callbackUrl = Url.Action(
@@ -207,7 +188,7 @@ namespace PantryChef.Web.Controllers
             }
 
             var user = await _userManager.FindByEmailAsync(model.Email);
-            if (user is null)
+            if (user == null)
             {
                 return RedirectToAction(nameof(ResetPasswordConfirmation));
             }

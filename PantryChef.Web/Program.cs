@@ -57,6 +57,14 @@ namespace PantryChef.Web
                 builder.Services.AddScoped<PantryChef.Business.Interfaces.IInventoryService, PantryChef.Business.Services.InventoryService>();
 
                 var app = builder.Build();
+                
+                app.UseMiddleware<PantryChef.Web.Middleware.ExceptionMiddleware>();
+
+                if (!app.Environment.IsDevelopment())
+                {
+                    app.UseExceptionHandler("/Home/Error");
+                    app.UseHsts();
+                }
 
                 if (!app.Environment.IsDevelopment())
                 {
