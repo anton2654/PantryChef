@@ -6,6 +6,7 @@ using PantryChef.Business.Interfaces;
 using PantryChef.Data.Entities;
 using PantryChef.Data.Interfaces;
 using PantryChef.Web.Controllers;
+using PantryChef.Web.Models;
 
 namespace PantryChef.Tests;
 
@@ -73,7 +74,8 @@ public class InventoryAndRecipeControllerTests
         var result = await controller.Details(7);
 
         var viewResult = Assert.IsType<ViewResult>(result);
-        Assert.Same(recipe, viewResult.Model);
+        var model = Assert.IsType<RecipeDetailsViewModel>(viewResult.Model);
+        Assert.Same(recipe, model.Recipe);
     }
 
     [Fact]
@@ -93,7 +95,8 @@ public class InventoryAndRecipeControllerTests
         var result = await controller.CalculateNutrition(3);
 
         var redirectResult = Assert.IsType<RedirectToActionResult>(result);
-        Assert.Equal(nameof(RecipeController.Index), redirectResult.ActionName);
+        Assert.Equal(nameof(RecipeController.Details), redirectResult.ActionName);
+        Assert.Equal(3, redirectResult.RouteValues?["id"]);
         nutritionServiceMock.Verify(service => service.UpdateRecipeNutritionAsync(3), Times.Once);
         Assert.Equal("КБЖВ для рецепта успішно перераховано.", controller.TempData["SuccessMessage"]);
     }

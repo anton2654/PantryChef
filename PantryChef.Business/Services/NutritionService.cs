@@ -1,7 +1,9 @@
 ﻿using Microsoft.Extensions.Logging;
 using PantryChef.Business.Interfaces;
+using PantryChef.Data.Entities;
 using PantryChef.Data.Interfaces;
 using System;
+using System.Linq; 
 using System.Threading.Tasks;
 
 namespace PantryChef.Business.Services
@@ -66,6 +68,29 @@ namespace PantryChef.Business.Services
 
                 throw new InvalidOperationException($"Критична помилка при розрахунку харчової цінності для рецепта {recipeId}.", ex);
             }
+        }
+
+        public (double Calories, double Proteins, double Fats, double Carbohydrates) CalculateNutrition(Recipe recipe)
+        {
+            if (recipe.RecipeIngredients == null || recipe.RecipeIngredients.Count == 0)
+            {
+                return (
+                    Math.Round(recipe.Calories, 1),
+                    Math.Round(recipe.Proteins, 1),
+                    Math.Round(recipe.Fats, 1),
+                    Math.Round(recipe.Carbohydrates, 1));
+            }
+
+            var calories = recipe.RecipeIngredients.Sum(item => item.Ingredient.Calories * (item.Quantity / 100.0));
+            var proteins = recipe.RecipeIngredients.Sum(item => item.Ingredient.Proteins * (item.Quantity / 100.0));
+            var fats = recipe.RecipeIngredients.Sum(item => item.Ingredient.Fats * (item.Quantity / 100.0));
+            var carbohydrates = recipe.RecipeIngredients.Sum(item => item.Ingredient.Carbohydrates * (item.Quantity / 100.0));
+
+            return (
+                Math.Round(calories, 1),
+                Math.Round(proteins, 1),
+                Math.Round(fats, 1),
+                Math.Round(carbohydrates, 1));
         }
     }
 }

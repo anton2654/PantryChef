@@ -1,10 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using PantryChef.Data.Context;
+using PantryChef.Business.Interfaces;
 using PantryChef.Data.Entities;
 using PantryChef.Web.Models;
+using System;
+using System.Threading.Tasks;
 
 namespace PantryChef.Web.Controllers
 {
@@ -13,18 +14,18 @@ namespace PantryChef.Web.Controllers
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
-        private readonly PantryChefDbContext _dbContext;
+        private readonly IAccountService _accountService;
         private readonly ILogger<AccountController> _logger;
 
         public AccountController(
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
-            PantryChefDbContext dbContext,
+            IAccountService accountService,
             ILogger<AccountController> logger)
         {
             _userManager = userManager;
             _signInManager = signInManager;
-            _dbContext = dbContext;
+            _accountService = accountService;
             _logger = logger;
         }
 
@@ -43,38 +44,25 @@ namespace PantryChef.Web.Controllers
                 return View(model);
             }
 
-            var identityUser = new ApplicationUser
-            {
-                UserName = model.Email,
-                Email = model.Email
-            };
-
-            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
-
             try
             {
-                var result = await _userManager.CreateAsync(identityUser, model.Password);
-                if (!result.Succeeded)
+                var (succeeded, errors, user) = await _accountService.RegisterUserAsync(model.Email, model.Password, model.FullName);
+                
+                if (!succeeded)
                 {
-                    foreach (var error in result.Errors)
+                    foreach (var error in errors)
                     {
-                        ModelState.AddModelError(string.Empty, error.Description);
+                        ModelState.AddModelError(string.Empty, error);
                     }
-
-                    await transaction.RollbackAsync();
                     return View(model);
                 }
 
-                await EnsureDomainUserLinkedAsync(identityUser, model.FullName);
-
-                await transaction.CommitAsync();
                 _logger.LogInformation("New user registered with email {Email}", model.Email);
-                await _signInManager.SignInAsync(identityUser, isPersistent: false);
+                await _signInManager.SignInAsync(user, isPersistent: false);
                 return RedirectToAction("Index", "Home");
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
                 _logger.LogError(ex, "Failed to register user with email {Email}", model.Email);
                 ModelState.AddModelError(string.Empty, "Unable to complete registration right now. Please try again.");
             }
@@ -119,7 +107,7 @@ namespace PantryChef.Web.Controllers
             {
                 try
                 {
-                    await EnsureDomainUserLinkedAsync(user);
+                    await _accountService.EnsureDomainUserLinkedAsync(user);
                 }
                 catch (Exception ex)
                 {
@@ -253,70 +241,6 @@ namespace PantryChef.Web.Controllers
             }
 
             return RedirectToAction("Index", "Home");
-        }
-
-        private async Task EnsureDomainUserLinkedAsync(ApplicationUser identityUser, string preferredName = null)
-        {
-            var existingByIdentityId = await _dbContext.Users
-                .FirstOrDefaultAsync(user => user.IdentityUserId == identityUser.Id);
-
-            if (existingByIdentityId is not null)
-            {
-                return;
-            }
-
-            var identityEmail = identityUser.Email ?? identityUser.UserName ?? string.Empty;
-
-            if (!string.IsNullOrWhiteSpace(identityEmail))
-            {
-                var existingByEmail = await _dbContext.Users
-                    .FirstOrDefaultAsync(user => user.Email == identityEmail);
-
-                if (existingByEmail is not null)
-                {
-                    existingByEmail.IdentityUserId = identityUser.Id;
-
-                    if (string.IsNullOrWhiteSpace(existingByEmail.Name))
-                    {
-                        existingByEmail.Name = ResolveDisplayName(preferredName, identityEmail);
-                    }
-
-                    _dbContext.Users.Update(existingByEmail);
-                    await _dbContext.SaveChangesAsync();
-                    return;
-                }
-            }
-
-            var domainUser = new User
-            {
-                Email = identityEmail,
-                Password = "IDENTITY_MANAGED",
-                Name = ResolveDisplayName(preferredName, identityEmail),
-                CalorieGoals = 2000,
-                Allergies = "none",
-                IdentityUserId = identityUser.Id
-            };
-
-            await _dbContext.Users.AddAsync(domainUser);
-            await _dbContext.SaveChangesAsync();
-        }
-
-        private static string ResolveDisplayName(string preferredName, string email)
-        {
-            if (!string.IsNullOrWhiteSpace(preferredName))
-            {
-                return preferredName.Trim();
-            }
-
-            if (string.IsNullOrWhiteSpace(email))
-            {
-                return "PantryChef User";
-            }
-
-            var atSignIndex = email.IndexOf('@');
-            return atSignIndex > 0
-                ? email[..atSignIndex]
-                : email;
         }
     }
 }

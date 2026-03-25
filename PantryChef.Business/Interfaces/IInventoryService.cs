@@ -1,4 +1,5 @@
-﻿using System;
+﻿using PantryChef.Data.Entities;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,5 +10,6 @@ namespace PantryChef.Business.Interfaces
     public interface IInventoryService
     {
         Task AddOrUpdateIngredientAsync(int userId, int ingredientId, double quantity);
+        Task<IEnumerable<UserIngredient>> GetUserInventoryAsync(int userId);
     }
 }

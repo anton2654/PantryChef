@@ -3,6 +3,7 @@ using PantryChef.Business.Interfaces;
 using PantryChef.Data.Entities;
 using PantryChef.Data.Interfaces;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace PantryChef.Business.Services
@@ -11,12 +12,19 @@ namespace PantryChef.Business.Services
     {
         private readonly IUserIngredientRepository _inventoryRepo;
         private readonly ILogger<InventoryService> _logger;
+
         public InventoryService(
             IUserIngredientRepository inventoryRepo,
             ILogger<InventoryService> logger)
         {
             _inventoryRepo = inventoryRepo;
             _logger = logger;
+        }
+
+        public async Task<IEnumerable<UserIngredient>> GetUserInventoryAsync(int userId)
+        {
+            _logger.LogInformation("Отримання списку запасів для користувача {UserId}", userId);
+            return await _inventoryRepo.GetUserInventoryAsync(userId);
         }
 
         public async Task AddOrUpdateIngredientAsync(int userId, int ingredientId, double quantity)
