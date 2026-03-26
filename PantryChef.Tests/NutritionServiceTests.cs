@@ -17,7 +17,7 @@ public class NutritionServiceTests
             Name = "Test Recipe",
             Description = "desc",
             Photo = "img.jpg",
-            Category = DishCategory.Breakfast,
+            Category = "Сніданки",
             RecipeIngredients =
             [
                 new RecipeIngredient
@@ -64,19 +64,20 @@ public class NutritionServiceTests
 
         var sut = new NutritionService(recipeRepositoryMock.Object, Mock.Of<ILogger<NutritionService>>());
 
-        await sut.UpdateRecipeNutritionAsync(recipe.Id);
+        var result = await sut.UpdateRecipeNutritionAsync(recipe.Id);
 
         Assert.Equal(506.8, recipe.Calories);
         Assert.Equal(62.0, recipe.Proteins);
         Assert.Equal(27.2, recipe.Fats);
         Assert.Equal(0.0, recipe.Carbohydrates);
+        Assert.True(result.IsSuccess);
 
         recipeRepositoryMock.Verify(repository => repository.Update(recipe), Times.Once);
         recipeRepositoryMock.Verify(repository => repository.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]
-    public async Task UpdateRecipeNutritionAsync_WhenRecipeDoesNotExist_ThrowsInvalidOperationException()
+    public async Task UpdateRecipeNutritionAsync_WhenRecipeDoesNotExist_ReturnsFailureResult()
     {
         var recipeRepositoryMock = new Mock<IRecipeRepository>();
         recipeRepositoryMock
@@ -85,10 +86,10 @@ public class NutritionServiceTests
 
         var sut = new NutritionService(recipeRepositoryMock.Object, Mock.Of<ILogger<NutritionService>>());
 
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => sut.UpdateRecipeNutritionAsync(404));
+        var result = await sut.UpdateRecipeNutritionAsync(404);
 
-        Assert.NotNull(exception.InnerException);
-        Assert.IsType<ArgumentException>(exception.InnerException);
+        Assert.False(result.IsSuccess);
+        Assert.Equal("Рецепт з ID 404 не існує.", result.ErrorMessage);
 
         recipeRepositoryMock.Verify(repository => repository.Update(It.IsAny<Recipe>()), Times.Never);
         recipeRepositoryMock.Verify(repository => repository.SaveChangesAsync(), Times.Never);

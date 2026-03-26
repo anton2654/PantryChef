@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using PantryChef.Business.Interfaces;
@@ -26,18 +25,18 @@ namespace PantryChef.Tests
             var controller = new RecipeController(recipeServiceMock.Object, nutritionServiceMock.Object);
             
             string category = "Сніданки";
-            var recipes = new List<Recipe> { new Recipe { Id = 1, Name = "Яєчня", Category = "Сніданки" } };
+            var recipes = new List<Recipe> { new Recipe { Id = 1, Name = "Яєчня", Description = "Проста страва", Category = "Сніданки" } };
             
             recipeServiceMock.Setup(s => s.GetRecipesByCategoryAsync(category))
                 .ReturnsAsync(recipes);
 
             var result = await controller.Filter(category);
 
-            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
-            var model = viewResult.Model.Should().BeOfType<RecipeIndexViewModel>().Subject;
-            model.Recipes.Should().HaveCount(1);
-            model.SelectedCategory.Should().Be(category);
-            model.Recipes.First().Name.Should().Be("Яєчня");
+            var viewResult = Assert.IsType<ViewResult>(result);
+            var model = Assert.IsType<RecipeIndexViewModel>(viewResult.Model);
+            Assert.Single(model.Recipes);
+            Assert.Equal(category, model.SelectedCategory);
+            Assert.Equal("Яєчня", model.Recipes.First().Name);
         }
 
         // INVENTORY CONTROLLER 
@@ -60,15 +59,15 @@ namespace PantryChef.Tests
                 } 
             };
             
-            inventoryServiceMock.Setup(s => s.GetUserInventoryAsync(It.IsAny<int>()))
+            inventoryServiceMock.Setup(s => s.GetUserInventoryAsync(It.IsAny<int>(), It.IsAny<string>()))
                 .ReturnsAsync(inventory);
 
             var result = await controller.Details(ingredientId);
 
-            var viewResult = result.Should().BeOfType<ViewResult>().Subject;
-            var model = viewResult.Model.Should().BeOfType<IngredientDetailsViewModel>().Subject;
-            model.Ingredient.Name.Should().Be("Банан");
-            model.Quantity.Should().Be(500);
+            var viewResult = Assert.IsType<ViewResult>(result);
+            var model = Assert.IsType<IngredientDetailsViewModel>(viewResult.Model);
+            Assert.Equal("Банан", model.Ingredient.Name);
+            Assert.Equal(500, model.Quantity);
         }
 
         [Fact]
@@ -77,12 +76,12 @@ namespace PantryChef.Tests
             var inventoryServiceMock = new Mock<IInventoryService>();
             var controller = new InventoryController(inventoryServiceMock.Object);
             
-            inventoryServiceMock.Setup(s => s.GetUserInventoryAsync(It.IsAny<int>()))
+            inventoryServiceMock.Setup(s => s.GetUserInventoryAsync(It.IsAny<int>(), It.IsAny<string>()))
                 .ReturnsAsync(new List<UserIngredient>());
 
             var result = await controller.Details(999);
 
-            result.Should().BeOfType<NotFoundResult>();
+            Assert.IsType<NotFoundResult>(result);
         }
 
         // NUTRITION SERVICE
@@ -94,12 +93,14 @@ namespace PantryChef.Tests
             
             var recipe = new Recipe
             {
+                Name = "Тест",
+                Description = "Тестовий рецепт",
                 RecipeIngredients = new List<RecipeIngredient>
                 {
                     // 200г (коефіцієнт 2.0)
-                    new() { Quantity = 200, Ingredient = new Ingredient { Calories = 100, Proteins = 10, Fats = 5, Carbohydrates = 20 } },
+                    new() { Quantity = 200, Ingredient = new Ingredient { Name = "Інгредієнт1", Category = "Категорія1", Calories = 100, Proteins = 10, Fats = 5, Carbohydrates = 20 } },
                     // 50г (коефіцієнт 0.5)
-                    new() { Quantity = 50, Ingredient = new Ingredient { Calories = 200, Proteins = 20, Fats = 10, Carbohydrates = 40 } }
+                    new() { Quantity = 50, Ingredient = new Ingredient { Name = "Інгредієнт2", Category = "Категорія2", Calories = 200, Proteins = 20, Fats = 10, Carbohydrates = 40 } }
                 }
             };
 
@@ -108,13 +109,13 @@ namespace PantryChef.Tests
 
             // Assert
             // (100 * 2.0) + (200 * 0.5) = 200 + 100 = 300
-            result.Calories.Should().Be(300);
+            Assert.Equal(300, result.Calories);
             // (10 * 2.0) + (20 * 0.5) = 20 + 10 = 30
-            result.Proteins.Should().Be(30);
+            Assert.Equal(30, result.Proteins);
             // (5 * 2.0) + (10 * 0.5) = 10 + 5 = 15
-            result.Fats.Should().Be(15);
+            Assert.Equal(15, result.Fats);
             // (20 * 2.0) + (40 * 0.5) = 40 + 20 = 60
-            result.Carbohydrates.Should().Be(60);
+            Assert.Equal(60, result.Carbohydrates);
         }
     }
 }

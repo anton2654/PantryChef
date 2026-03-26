@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Moq;
 using PantryChef.Business.Interfaces;
 using PantryChef.Data.Entities;
-using PantryChef.Data.Interfaces;
 using PantryChef.Web.Controllers;
 using PantryChef.Web.Models;
 
@@ -17,16 +16,16 @@ public class RecipeControllerTests
     {
         var allRecipes = new List<Recipe>
         {
-            new() { Id = 1, Name = "Scrambled Eggs", Description = "desc", Photo = "img.jpg", Category = DishCategory.Breakfast },
-            new() { Id = 2, Name = "Pasta", Description = "desc", Photo = "img.jpg", Category = DishCategory.Lunch }
+            new() { Id = 1, Name = "Scrambled Eggs", Description = "desc", Photo = "img.jpg", Category = "Сніданки" },
+            new() { Id = 2, Name = "Pasta", Description = "desc", Photo = "img.jpg", Category = "Обіди" }
         };
 
-        var recipeRepoMock = new Mock<IRecipeRepository>();
-        recipeRepoMock
-            .Setup(repository => repository.GetAllRecipesWithIngredientsAsync())
+        var recipeServiceMock = new Mock<IRecipeService>();
+        recipeServiceMock
+            .Setup(service => service.GetAllRecipesWithIngredientsAsync())
             .ReturnsAsync(allRecipes);
 
-        var sut = CreateController(recipeRepoMock);
+        var sut = CreateController(recipeServiceMock);
 
         var result = await sut.Filter(null);
 
@@ -38,8 +37,8 @@ public class RecipeControllerTests
         Assert.Equal(2, model.Recipes.Count());
         Assert.Contains(model.Categories, category => category.Value == string.Empty && category.IsSelected);
 
-        recipeRepoMock.Verify(repository => repository.GetAllRecipesWithIngredientsAsync(), Times.Once);
-        recipeRepoMock.Verify(repository => repository.GetRecipesByCategoryAsync(It.IsAny<DishCategory>()), Times.Never);
+        recipeServiceMock.Verify(service => service.GetAllRecipesWithIngredientsAsync(), Times.Once);
+        recipeServiceMock.Verify(service => service.GetRecipesByCategoryAsync(It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -47,57 +46,57 @@ public class RecipeControllerTests
     {
         var dinnerRecipes = new List<Recipe>
         {
-            new() { Id = 3, Name = "Grilled Chicken", Description = "desc", Photo = "img.jpg", Category = DishCategory.Dinner }
+            new() { Id = 3, Name = "Grilled Chicken", Description = "desc", Photo = "img.jpg", Category = "Вечері" }
         };
 
-        var recipeRepoMock = new Mock<IRecipeRepository>();
-        recipeRepoMock
-            .Setup(repository => repository.GetRecipesByCategoryAsync(DishCategory.Dinner))
+        var recipeServiceMock = new Mock<IRecipeService>();
+        recipeServiceMock
+            .Setup(service => service.GetRecipesByCategoryAsync("Вечері"))
             .ReturnsAsync(dinnerRecipes);
 
-        var sut = CreateController(recipeRepoMock);
+        var sut = CreateController(recipeServiceMock);
 
-        var result = await sut.Filter("dinner");
+        var result = await sut.Filter("Вечері");
 
         var viewResult = Assert.IsType<ViewResult>(result);
         var model = Assert.IsType<RecipeIndexViewModel>(viewResult.Model);
 
-        Assert.Equal("Dinner", model.SelectedCategory);
+        Assert.Equal("Вечері", model.SelectedCategory);
         Assert.Single(model.Recipes);
 
         var selectedCategory = Assert.Single(model.Categories, category => category.IsSelected);
-        Assert.Equal("Dinner", selectedCategory.Value);
-        Assert.Equal("Вечеря", selectedCategory.Label);
+        Assert.Equal("Вечері", selectedCategory.Value);
+        Assert.Equal("Вечері", selectedCategory.Label);
 
-        recipeRepoMock.Verify(repository => repository.GetRecipesByCategoryAsync(DishCategory.Dinner), Times.Once);
-        recipeRepoMock.Verify(repository => repository.GetAllRecipesWithIngredientsAsync(), Times.Never);
+        recipeServiceMock.Verify(service => service.GetRecipesByCategoryAsync("Вечері"), Times.Once);
+        recipeServiceMock.Verify(service => service.GetAllRecipesWithIngredientsAsync(), Times.Never);
     }
 
     [Fact]
-    public async Task Filter_WhenCategoryIsInvalid_FallsBackToAllRecipesAndSetsErrorMessage()
+    public async Task Filter_WhenCategoryIsProvided_CallsServiceWithCategory()
     {
-        var allRecipes = new List<Recipe>
+        var filteredRecipes = new List<Recipe>
         {
-            new() { Id = 1, Name = "Scrambled Eggs", Description = "desc", Photo = "img.jpg", Category = DishCategory.Breakfast }
+            new() { Id = 1, Name = "Tomato Soup", Description = "desc", Photo = "img.jpg", Category = "Перші страви" }
         };
 
-        var recipeRepoMock = new Mock<IRecipeRepository>();
-        recipeRepoMock
-            .Setup(repository => repository.GetAllRecipesWithIngredientsAsync())
-            .ReturnsAsync(allRecipes);
+        var recipeServiceMock = new Mock<IRecipeService>();
+        recipeServiceMock
+            .Setup(service => service.GetRecipesByCategoryAsync("Перші страви"))
+            .ReturnsAsync(filteredRecipes);
 
-        var sut = CreateController(recipeRepoMock);
+        var sut = CreateController(recipeServiceMock);
 
-        var result = await sut.Filter("not-a-category");
+        var result = await sut.Filter("Перші страви");
 
         var viewResult = Assert.IsType<ViewResult>(result);
         var model = Assert.IsType<RecipeIndexViewModel>(viewResult.Model);
 
-        Assert.Equal(string.Empty, model.SelectedCategory);
-        Assert.Equal("Невідома категорія фільтра. Показано всі страви.", sut.TempData["ErrorMessage"]);
+        Assert.Equal("Перші страви", model.SelectedCategory);
+        Assert.Single(model.Recipes);
 
-        recipeRepoMock.Verify(repository => repository.GetAllRecipesWithIngredientsAsync(), Times.Once);
-        recipeRepoMock.Verify(repository => repository.GetRecipesByCategoryAsync(It.IsAny<DishCategory>()), Times.Never);
+        recipeServiceMock.Verify(service => service.GetRecipesByCategoryAsync("Перші страви"), Times.Once);
+        recipeServiceMock.Verify(service => service.GetAllRecipesWithIngredientsAsync(), Times.Never);
     }
 
     [Fact]
@@ -109,7 +108,7 @@ public class RecipeControllerTests
             Name = "Scrambled Eggs",
             Description = "desc",
             Photo = "img.jpg",
-            Category = DishCategory.Breakfast,
+            Category = "Сніданки",
             Calories = 999,
             Proteins = 999,
             Fats = 999,
@@ -153,12 +152,17 @@ public class RecipeControllerTests
             ]
         };
 
-        var recipeRepoMock = new Mock<IRecipeRepository>();
-        recipeRepoMock
-            .Setup(repository => repository.GetRecipeWithIngredientsByIdAsync(recipe.Id))
+        var recipeServiceMock = new Mock<IRecipeService>();
+        recipeServiceMock
+            .Setup(service => service.GetRecipeWithIngredientsByIdAsync(recipe.Id))
             .ReturnsAsync(recipe);
 
-        var sut = CreateController(recipeRepoMock);
+        var nutritionServiceMock = new Mock<INutritionService>();
+        nutritionServiceMock
+            .Setup(service => service.CalculateNutrition(recipe))
+            .Returns((190.4, 9.0, 17.2, 0.9));
+
+        var sut = CreateController(recipeServiceMock, nutritionServiceMock);
 
         var result = await sut.Details(recipe.Id);
 
@@ -171,9 +175,13 @@ public class RecipeControllerTests
         Assert.Equal(0.9, model.Carbohydrates);
     }
 
-    private static RecipeController CreateController(Mock<IRecipeRepository> recipeRepoMock)
+    private static RecipeController CreateController(
+        Mock<IRecipeService> recipeServiceMock,
+        Mock<INutritionService>? nutritionServiceMock = null)
     {
-        var controller = new RecipeController(recipeRepoMock.Object, Mock.Of<INutritionService>())
+        var controller = new RecipeController(
+            recipeServiceMock.Object,
+            nutritionServiceMock?.Object ?? Mock.Of<INutritionService>())
         {
             TempData = new TempDataDictionary(new DefaultHttpContext(), Mock.Of<ITempDataProvider>())
         };
