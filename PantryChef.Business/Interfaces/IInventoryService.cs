@@ -10,6 +10,8 @@ namespace PantryChef.Business.Interfaces
         Task<Result> AddOrUpdateIngredientAsync(int userId, int ingredientId, double quantity);
         
         Task<IEnumerable<UserIngredient>> GetUserInventoryAsync(int userId, string category = null);
+
+        Task<IEnumerable<Ingredient>> GetAvailableIngredientsAsync();
         
         Task<IEnumerable<string>> GetUserInventoryCategoriesAsync(int userId);
     }
