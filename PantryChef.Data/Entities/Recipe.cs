@@ -16,7 +16,7 @@ namespace PantryChef.Data.Entities
 
         public double Carbohydrates { get; set; }
         public string Photo { get; set; }
-        public DishCategory Category { get; set; }
+        public string Category { get; set; }
 
         public virtual ICollection<RecipeIngredient> RecipeIngredients { get; set; } = new List<RecipeIngredient>();
     }

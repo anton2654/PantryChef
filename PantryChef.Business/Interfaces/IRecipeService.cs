@@ -7,7 +7,7 @@ namespace PantryChef.Business.Interfaces
     public interface IRecipeService
     {
         Task<IEnumerable<Recipe>> GetAllRecipesWithIngredientsAsync();
-        Task<IEnumerable<Recipe>> GetRecipesByCategoryAsync(DishCategory category);
+        Task<IEnumerable<Recipe>> GetRecipesByCategoryAsync(string category);
         Task<Recipe> GetRecipeWithIngredientsByIdAsync(int id);
     }
 }

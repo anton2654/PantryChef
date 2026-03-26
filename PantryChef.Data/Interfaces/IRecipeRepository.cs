@@ -9,6 +9,6 @@ namespace PantryChef.Data.Interfaces
         Task<IEnumerable<Recipe>> GetAllRecipesWithIngredientsAsync();
 
         Task<Recipe> GetRecipeWithIngredientsByIdAsync(int id);
-        Task<IEnumerable<Recipe>> GetRecipesByCategoryAsync(DishCategory category);
+        Task<IEnumerable<Recipe>> GetRecipesByCategoryAsync(string category);
     }
 }

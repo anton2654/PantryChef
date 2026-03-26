@@ -30,7 +30,7 @@ namespace PantryChef.Data.Repositories
                 .FirstOrDefaultAsync(r => r.Id == id);
         }
 
-        public async Task<IEnumerable<Recipe>> GetRecipesByCategoryAsync(DishCategory category)
+        public async Task<IEnumerable<Recipe>> GetRecipesByCategoryAsync(string category)
         {
             return await _dbSet
                 .Include(r => r.RecipeIngredients)

@@ -1,4 +1,4 @@
-@model IEnumerable<PantryChef.Data.Entities.UserIngredient>
+@model PantryChef.Web.Models.InventoryIndexViewModel
 
 @{
     ViewData["Title"] = "Мій Холодильник";
@@ -7,24 +7,85 @@
 <div class="container mt-4">
     <h2 class="mb-4">Мій Холодильник</h2>
 
+    <form method="get" asp-action="Index" class="mb-4 d-flex align-items-center gap-3">
+        <label for="category" class="fw-bold mb-0">Фільтр за категорією:</label>
+        <select name="category" id="category" class="form-select w-auto">
+            <option value="">Всі категорії</option>
+            @foreach (var cat in Model.AvailableCategories)
+            {
+                if (Model.SelectedCategory == cat)
+                {
+                    <option value="@cat" selected>@cat</option>
+                }
+                else
+                {
+                    <option value="@cat">@cat</option>
+                }
+            }
+        </select>
+        <button type="submit" class="btn btn-primary px-4">Застосувати</button>
+    </form>
+
     <div class="row row-cols-1 row-cols-md-3 row-cols-lg-5 g-4">
-        @foreach (var item in Model)
+        @if (!Model.Inventory.Any())
         {
-            <div class="col">
-                <div class="card h-100 border-0 shadow-sm" style="border-radius: 12px; background-color: #fcfcfc;">
-                    <div style="height: 150px; overflow: hidden; border-top-left-radius: 12px; border-top-right-radius: 12px; background-color: #d9d9d9;">
-                        @if (!string.IsNullOrEmpty(item.Ingredient.Photo))
-                        {
-                            <img src="@item.Ingredient.Photo" alt="@item.Ingredient.Name" class="w-100 h-100" style="object-fit: cover;" />
-                        }
-                    </div>
-                    <div class="card-body text-center">
-                        <h6 class="card-title fw-bold mb-1">@item.Ingredient.Name</h6>
-                        <p class="text-muted small mb-0">Категорія: @item.Ingredient.Category</p>
-                        <p class="fw-bold mt-2 text-success">Залишок: @item.Quantity г/шт</p>
+            <div class="col-12 text-center py-5">
+                <p class="text-muted fs-5">У цій категорії поки що немає продуктів.</p>
+                <a asp-action="Index" class="btn btn-outline-secondary">Скинути фільтр</a>
+            </div>
+        }
+        else
+        {
+            @foreach (var item in Model.Inventory)
+            {
+                <div class="col">
+                    <div class="card h-100 border-0 shadow-sm" style="border-radius: 12px; background-color: #fcfcfc;">
+                        <div style="height: 150px; overflow: hidden; border-top-left-radius: 12px; border-top-right-radius: 12px; background-color: #d9d9d9;">
+                            @if (!string.IsNullOrEmpty(item.Ingredient.Photo))
+                            {
+                                <img src="@item.Ingredient.Photo" alt="@item.Ingredient.Name" class="w-100 h-100" style="object-fit: cover;" />
+                            }
+                            else
+                            {
+                                <div class="d-flex align-items-center justify-content-center h-100 text-white">
+                                    <i class="bi bi-basket fs-1"></i>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="card-body text-center d-flex flex-column">
+                            <h6 class="card-title fw-bold mb-1">@item.Ingredient.Name</h6>
+                            <p class="text-muted small mb-0">@item.Ingredient.Category</p>
+                            
+                            <div class="mt-2 mb-3">
+                                <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2" style="border-radius: 8px;">
+                                    @item.Quantity г/шт
+                                </span>
+                            </div>
+
+                            <div class="mt-auto">
+                                <a asp-action="Details" asp-route-id="@item.IngredientId" class="btn btn-sm btn-outline-primary w-100" style="border-radius: 8px;">
+                                    Деталі
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
+            }
         }
     </div>
 </div>
+
+<style>
+    .card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+    }
+    .form-select:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+</style>

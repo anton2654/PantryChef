@@ -24,7 +24,7 @@ namespace PantryChef.Business.Services
             return await _recipeRepo.GetAllRecipesWithIngredientsAsync();
         }
 
-        public async Task<IEnumerable<Recipe>> GetRecipesByCategoryAsync(DishCategory category)
+        public async Task<IEnumerable<Recipe>> GetRecipesByCategoryAsync(string category)
         {
             _logger.LogInformation("Отримання рецептів за категорією: {Category}", category);
             return await _recipeRepo.GetRecipesByCategoryAsync(category);

@@ -22,93 +22,51 @@ namespace PantryChef.Web.Controllers
         [HttpGet]
         public async Task<IActionResult> Index()
         {
-            return await Filter();
+            return await Filter(null);
         }
 
         [HttpGet]
         public async Task<IActionResult> Filter(string category = null)
         {
-            var selectedCategory = string.Empty;
-            IEnumerable<Recipe> recipes;
+            var recipes = string.IsNullOrWhiteSpace(category)
+                ? await _recipeService.GetAllRecipesWithIngredientsAsync()
+                : await _recipeService.GetRecipesByCategoryAsync(category);
 
-            if (string.IsNullOrWhiteSpace(category))
+            var dbCategories = new List<string> { "Сніданки", "Обіди", "Вечері", "Десерти", "Салати", "Гарніри", "Закуски", "Снеки", "Пісні страви", "Перші страви", "Другі страви" };
+
+            var options = new List<RecipeCategoryOptionViewModel>
             {
-                recipes = await _recipeService.GetAllRecipesWithIngredientsAsync();
-            }
-            else if (Enum.TryParse<DishCategory>(category, true, out var parsedCategory))
+                new() { Value = string.Empty, Label = "Всі страви", IsSelected = string.IsNullOrWhiteSpace(category) }
+            };
+
+            foreach (var cat in dbCategories)
             {
-                recipes = await _recipeService.GetRecipesByCategoryAsync(parsedCategory);
-                selectedCategory = parsedCategory.ToString();
-            }
-            else
-            {
-                TempData["ErrorMessage"] = "Невідома категорія фільтра. Показано всі страви.";
-                recipes = await _recipeService.GetAllRecipesWithIngredientsAsync();
+                options.Add(new RecipeCategoryOptionViewModel
+                {
+                    Value = cat,
+                    Label = cat,
+                    IsSelected = string.Equals(category, cat, StringComparison.OrdinalIgnoreCase)
+                });
             }
 
             var model = new RecipeIndexViewModel
             {
                 Recipes = recipes,
-                SelectedCategory = selectedCategory,
-                Categories = BuildCategoryOptions(selectedCategory)
+                SelectedCategory = category ?? string.Empty,
+                Categories = options
             };
 
             return View(nameof(Index), model);
         }
 
-        private static IEnumerable<RecipeCategoryOptionViewModel> BuildCategoryOptions(string selectedCategory)
-        {
-            var options = new List<RecipeCategoryOptionViewModel>
-            {
-                new()
-                {
-                    Value = string.Empty,
-                    Label = "Всі",
-                    IsSelected = string.IsNullOrWhiteSpace(selectedCategory)
-                }
-            };
-
-            foreach (var category in Enum.GetValues<DishCategory>())
-            {
-                var value = category.ToString();
-
-                options.Add(new RecipeCategoryOptionViewModel
-                {
-                    Value = value,
-                    Label = GetCategoryLabel(category),
-                    IsSelected = string.Equals(selectedCategory, value, StringComparison.OrdinalIgnoreCase)
-                });
-            }
-
-            return options;
-        }
-
-        private static string GetCategoryLabel(DishCategory category)
-        {
-            return category switch
-            {
-                DishCategory.Breakfast => "Сніданок",
-                DishCategory.Lunch => "Обід",
-                DishCategory.Dinner => "Вечеря",
-                DishCategory.Snack => "Перекус",
-                _ => category.ToString()
-            };
-        }
-
         [HttpGet]
         public async Task<IActionResult> Details(int id)
         {
-            if (id <= 0)
-            {
-                return BadRequest();
-            }
+            if (id <= 0) return BadRequest();
 
             var recipe = await _recipeService.GetRecipeWithIngredientsByIdAsync(id);
 
-            if (recipe == null)
-            {
-                return NotFound();
-            }
+            if (recipe == null) return NotFound();
 
             var nutrition = _nutritionService.CalculateNutrition(recipe);
 
@@ -127,10 +85,7 @@ namespace PantryChef.Web.Controllers
         [HttpPost]
         public async Task<IActionResult> CalculateNutrition(int id)
         {
-            if (id <= 0)
-            {
-                return BadRequest();
-            }
+            if (id <= 0) return BadRequest();
 
             var result = await _nutritionService.UpdateRecipeNutritionAsync(id);
 
@@ -141,7 +96,6 @@ namespace PantryChef.Web.Controllers
             }
 
             TempData["SuccessMessage"] = "КБЖВ для рецепта успішно перераховано.";
-
             return RedirectToAction(nameof(Details), new { id });
         }
     }

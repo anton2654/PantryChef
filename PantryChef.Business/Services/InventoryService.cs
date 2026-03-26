@@ -5,6 +5,7 @@ using PantryChef.Data.Entities;
 using PantryChef.Data.Interfaces;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Linq;
 
 namespace PantryChef.Business.Services
 {
@@ -21,10 +22,28 @@ namespace PantryChef.Business.Services
             _logger = logger;
         }
 
-        public async Task<IEnumerable<UserIngredient>> GetUserInventoryAsync(int userId)
+        public async Task<IEnumerable<UserIngredient>> GetUserInventoryAsync(int userId, string category = null)
         {
-            _logger.LogInformation("Отримання списку запасів для користувача {UserId}", userId);
-            return await _inventoryRepo.GetUserInventoryAsync(userId);
+            _logger.LogInformation("Отримання списку запасів для користувача {UserId} з фільтром: {Category}", userId, category ?? "Всі");
+            
+            var inventory = await _inventoryRepo.GetUserInventoryAsync(userId);
+
+            if (!string.IsNullOrWhiteSpace(category))
+            {
+                inventory = inventory.Where(i => i.Ingredient.Category.Equals(category, System.StringComparison.OrdinalIgnoreCase));
+            }
+
+            return inventory;
+        }
+
+        public async Task<IEnumerable<string>> GetUserInventoryCategoriesAsync(int userId)
+        {
+            var inventory = await _inventoryRepo.GetUserInventoryAsync(userId);
+            
+            return inventory
+                .Select(i => i.Ingredient.Category)
+                .Distinct()
+                .OrderBy(c => c);
         }
 
         public async Task<Result> AddOrUpdateIngredientAsync(int userId, int ingredientId, double quantity)
