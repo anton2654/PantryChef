@@ -21,6 +21,10 @@ public class InventoryAndRecipeControllerTests
         };
 
         var categories = new List<string> { "Овочі" };
+        var ingredients = new List<Ingredient>
+        {
+            new() { Id = 10, Name = "Морква", Category = "Овочі" }
+        };
         var inventoryServiceMock = new Mock<IInventoryService>();
         inventoryServiceMock
             .Setup(service => service.GetUserInventoryAsync(1, null))
@@ -28,6 +32,9 @@ public class InventoryAndRecipeControllerTests
         inventoryServiceMock
             .Setup(service => service.GetUserInventoryCategoriesAsync(1))
             .ReturnsAsync(categories);
+        inventoryServiceMock
+            .Setup(service => service.GetAvailableIngredientsAsync())
+            .ReturnsAsync(ingredients);
 
         var controller = new InventoryController(inventoryServiceMock.Object);
 
@@ -37,8 +44,10 @@ public class InventoryAndRecipeControllerTests
         var model = Assert.IsType<InventoryIndexViewModel>(viewResult.Model);
         Assert.Same(inventoryItems, model.Inventory);
         Assert.Equal(categories, model.AvailableCategories);
+        Assert.Equal(ingredients, model.AvailableIngredients);
         inventoryServiceMock.Verify(service => service.GetUserInventoryAsync(1, null), Times.Once);
         inventoryServiceMock.Verify(service => service.GetUserInventoryCategoriesAsync(1), Times.Once);
+        inventoryServiceMock.Verify(service => service.GetAvailableIngredientsAsync(), Times.Once);
     }
 
     [Fact]

@@ -12,13 +12,16 @@ namespace PantryChef.Business.Services
     public class InventoryService : IInventoryService
     {
         private readonly IUserIngredientRepository _inventoryRepo;
+        private readonly IIngredientRepository _ingredientRepo;
         private readonly ILogger<InventoryService> _logger;
 
         public InventoryService(
             IUserIngredientRepository inventoryRepo,
+            IIngredientRepository ingredientRepo,
             ILogger<InventoryService> logger)
         {
             _inventoryRepo = inventoryRepo;
+            _ingredientRepo = ingredientRepo;
             _logger = logger;
         }
 
@@ -34,6 +37,15 @@ namespace PantryChef.Business.Services
             }
 
             return inventory;
+        }
+
+        public async Task<IEnumerable<Ingredient>> GetAvailableIngredientsAsync()
+        {
+            var ingredients = await _ingredientRepo.GetAllAsync();
+
+            return ingredients
+                .OrderBy(i => i.Name)
+                .ToList();
         }
 
         public async Task<IEnumerable<string>> GetUserInventoryCategoriesAsync(int userId)
