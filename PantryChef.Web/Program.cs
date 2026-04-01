@@ -58,14 +58,14 @@ namespace PantryChef.Web
                 builder.Services.AddScoped<PantryChef.Business.Interfaces.IInventoryService, PantryChef.Business.Services.InventoryService>();
 
                 var app = builder.Build();
+
+                using (var scope = app.Services.CreateScope())
+                {
+                    var dbContext = scope.ServiceProvider.GetRequiredService<PantryChefDbContext>();
+                    dbContext.Database.Migrate();
+                }
                 
                 app.UseMiddleware<PantryChef.Web.Middleware.ExceptionMiddleware>();
-
-                if (!app.Environment.IsDevelopment())
-                {
-                    app.UseExceptionHandler("/Home/Error");
-                    app.UseHsts();
-                }
 
                 if (!app.Environment.IsDevelopment())
                 {
