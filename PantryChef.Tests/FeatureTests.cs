@@ -59,7 +59,7 @@ namespace PantryChef.Tests
                 } 
             };
             
-            inventoryServiceMock.Setup(s => s.GetUserInventoryAsync(It.IsAny<int>(), It.IsAny<string>()))
+            inventoryServiceMock.Setup(s => s.GetUserInventoryAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>()))
                 .ReturnsAsync(inventory);
 
             var result = await controller.Details(ingredientId);
@@ -76,7 +76,7 @@ namespace PantryChef.Tests
             var inventoryServiceMock = new Mock<IInventoryService>();
             var controller = new InventoryController(inventoryServiceMock.Object);
             
-            inventoryServiceMock.Setup(s => s.GetUserInventoryAsync(It.IsAny<int>(), It.IsAny<string>()))
+            inventoryServiceMock.Setup(s => s.GetUserInventoryAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>()))
                 .ReturnsAsync(new List<UserIngredient>());
 
             var result = await controller.Details(999);

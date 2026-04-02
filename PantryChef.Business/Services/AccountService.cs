@@ -41,13 +41,13 @@ namespace PantryChef.Business.Services
             {
                 await transaction.RollbackAsync();
                 var errors = string.Join("\n", result.Errors.Select(e => e.Description));
-                return Result<ApplicationUser>.Failure(errors);
+                return new Error(errors);
             }
 
             await EnsureDomainUserLinkedAsync(identityUser, fullName);
             await transaction.CommitAsync();
 
-            return Result<ApplicationUser>.Success(identityUser);
+            return identityUser;
         }
 
         public async Task EnsureDomainUserLinkedAsync(ApplicationUser identityUser, string preferredName = null)

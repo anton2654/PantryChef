@@ -6,9 +6,11 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
+using Microsoft.AspNetCore.Authorization;
+
 namespace PantryChef.Web.Controllers
 {
-    public class RecipeController : Controller
+    public class RecipeController : BaseController
     {
         private readonly IRecipeService _recipeService;
         private readonly INutritionService _nutritionService;
@@ -83,6 +85,7 @@ namespace PantryChef.Web.Controllers
         }
 
         [HttpPost]
+        [Authorize]
         public async Task<IActionResult> CalculateNutrition(int id)
         {
             if (id <= 0) return BadRequest();
@@ -91,11 +94,11 @@ namespace PantryChef.Web.Controllers
 
             if (!result.IsSuccess)
             {
-                TempData["ErrorMessage"] = result.ErrorMessage;
+                SetErrorMessage(result.ErrorMessage);
                 return RedirectToAction(nameof(Details), new { id });
             }
 
-            TempData["SuccessMessage"] = "КБЖВ для рецепта успішно перераховано.";
+            SetSuccessMessage("КБЖВ для рецепта успішно перераховано.");
             return RedirectToAction(nameof(Details), new { id });
         }
     }

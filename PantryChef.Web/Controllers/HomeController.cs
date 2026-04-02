@@ -4,7 +4,7 @@ using PantryChef.Web.Models;
 
 namespace PantryChef.Web.Controllers
 {
-    public class HomeController : Controller
+    public class HomeController : BaseController
     {
         private readonly ILogger<HomeController> _logger;
 
@@ -15,7 +15,7 @@ namespace PantryChef.Web.Controllers
 
         public IActionResult Index()
         {
-            _logger.LogInformation("Користувач відкрив головну сторінку PantryChef.");
+            _logger.LogInformation("пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ PantryChef.");
 
             return View();
         }

@@ -27,7 +27,7 @@ public class InventoryAndRecipeControllerTests
         };
         var inventoryServiceMock = new Mock<IInventoryService>();
         inventoryServiceMock
-            .Setup(service => service.GetUserInventoryAsync(1, null))
+            .Setup(service => service.GetUserInventoryAsync(1, null, null))
             .ReturnsAsync(inventoryItems);
         inventoryServiceMock
             .Setup(service => service.GetUserInventoryCategoriesAsync(1))
@@ -45,7 +45,7 @@ public class InventoryAndRecipeControllerTests
         Assert.Same(inventoryItems, model.Inventory);
         Assert.Equal(categories, model.AvailableCategories);
         Assert.Equal(ingredients, model.AvailableIngredients);
-        inventoryServiceMock.Verify(service => service.GetUserInventoryAsync(1, null), Times.Once);
+        inventoryServiceMock.Verify(service => service.GetUserInventoryAsync(1, null, null), Times.Once);
         inventoryServiceMock.Verify(service => service.GetUserInventoryCategoriesAsync(1), Times.Once);
         inventoryServiceMock.Verify(service => service.GetAvailableIngredientsAsync(), Times.Once);
     }
@@ -119,5 +119,125 @@ public class InventoryAndRecipeControllerTests
         Assert.Equal(3, redirectResult.RouteValues?["id"]);
         nutritionServiceMock.Verify(service => service.UpdateRecipeNutritionAsync(3), Times.Once);
         Assert.Equal("КБЖВ для рецепта успішно перераховано.", controller.TempData["SuccessMessage"]);
+    }
+
+    [Fact]
+    public async Task RemoveIngredient_Success_SetsSuccessMessageAndRedirects()
+    {
+        var inventoryServiceMock = new Mock<IInventoryService>();
+        inventoryServiceMock
+            .Setup(s => s.RemoveIngredientAsync(1, 5))
+            .ReturnsAsync(Result.Success());
+
+        var controller = new InventoryController(inventoryServiceMock.Object)
+        {
+            TempData = new TempDataDictionary(new DefaultHttpContext(), Mock.Of<ITempDataProvider>())
+        };
+
+        var result = await controller.RemoveIngredient(5);
+
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
+        Assert.Equal(nameof(InventoryController.Index), redirect.ActionName);
+        Assert.Equal("Інгредієнт видалено з холодильника.", controller.TempData["SuccessMessage"]);
+        inventoryServiceMock.Verify(s => s.RemoveIngredientAsync(1, 5), Times.Once);
+    }
+
+    [Fact]
+    public async Task RemoveIngredient_Failure_SetsErrorMessageAndRedirects()
+    {
+        var inventoryServiceMock = new Mock<IInventoryService>();
+        inventoryServiceMock
+            .Setup(s => s.RemoveIngredientAsync(1, 6))
+            .ReturnsAsync(Result.Failure("Not allowed"));
+
+        var controller = new InventoryController(inventoryServiceMock.Object)
+        {
+            TempData = new TempDataDictionary(new DefaultHttpContext(), Mock.Of<ITempDataProvider>())
+        };
+
+        var result = await controller.RemoveIngredient(6);
+
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
+        Assert.Equal(nameof(InventoryController.Index), redirect.ActionName);
+        Assert.Equal("Not allowed", controller.TempData["ErrorMessage"]);
+        inventoryServiceMock.Verify(s => s.RemoveIngredientAsync(1, 6), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateQuantity_Success_SetsSuccessMessageAndRedirects()
+    {
+        var inventoryServiceMock = new Mock<IInventoryService>();
+        inventoryServiceMock
+            .Setup(s => s.UpdateIngredientQuantityAsync(1, 8, 2.5))
+            .ReturnsAsync(Result.Success());
+
+        var controller = new InventoryController(inventoryServiceMock.Object)
+        {
+            TempData = new TempDataDictionary(new DefaultHttpContext(), Mock.Of<ITempDataProvider>())
+        };
+
+        var result = await controller.UpdateQuantity(8, 2.5);
+
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
+        Assert.Equal(nameof(InventoryController.Index), redirect.ActionName);
+        Assert.Equal("Кількість інгредієнта успішно оновлено.", controller.TempData["SuccessMessage"]);
+        inventoryServiceMock.Verify(s => s.UpdateIngredientQuantityAsync(1, 8, 2.5), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateQuantity_Failure_SetsErrorMessageAndRedirects()
+    {
+        var inventoryServiceMock = new Mock<IInventoryService>();
+        inventoryServiceMock
+            .Setup(s => s.UpdateIngredientQuantityAsync(1, 9, 0))
+            .ReturnsAsync(Result.Failure("Invalid quantity"));
+
+        var controller = new InventoryController(inventoryServiceMock.Object)
+        {
+            TempData = new TempDataDictionary(new DefaultHttpContext(), Mock.Of<ITempDataProvider>())
+        };
+
+        var result = await controller.UpdateQuantity(9, 0);
+
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
+        Assert.Equal(nameof(InventoryController.Index), redirect.ActionName);
+        Assert.Equal("Invalid quantity", controller.TempData["ErrorMessage"]);
+        inventoryServiceMock.Verify(s => s.UpdateIngredientQuantityAsync(1, 9, 0), Times.Once);
+    }
+
+    [Fact]
+    public async Task Index_WithSearchQuery_PassesSearchToServiceAndReturnsFilteredModel()
+    {
+        var inventoryItems = new List<UserIngredient>
+        {
+            new() { Id = 1, UserId = 1, IngredientId = 10, Quantity = 2, Ingredient = new Ingredient { Id = 10, Name = "Часник", Category = "Спеції" } }
+        };
+
+        var categories = new List<string> { "Спеції" };
+        var ingredients = new List<Ingredient>
+        {
+            new() { Id = 10, Name = "Часник", Category = "Спеції" }
+        };
+
+        var inventoryServiceMock = new Mock<IInventoryService>();
+        inventoryServiceMock
+            .Setup(s => s.GetUserInventoryAsync(1, null, "Час"))
+            .ReturnsAsync(inventoryItems);
+        inventoryServiceMock
+            .Setup(s => s.GetUserInventoryCategoriesAsync(1))
+            .ReturnsAsync(categories);
+        inventoryServiceMock
+            .Setup(s => s.GetAvailableIngredientsAsync())
+            .ReturnsAsync(ingredients);
+
+        var controller = new InventoryController(inventoryServiceMock.Object);
+
+        var result = await controller.Index(null, "Час");
+
+        var viewResult = Assert.IsType<ViewResult>(result);
+        var model = Assert.IsType<InventoryIndexViewModel>(viewResult.Model);
+        Assert.Equal("Час", model.SearchQuery);
+        Assert.Same(inventoryItems, model.Inventory);
+        inventoryServiceMock.Verify(s => s.GetUserInventoryAsync(1, null, "Час"), Times.Once);
     }
 }

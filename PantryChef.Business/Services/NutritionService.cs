@@ -30,7 +30,7 @@ namespace PantryChef.Business.Services
 
             if (recipe == null)
             {
-                return Result.Failure($"Рецепт з ID {recipeId} не існує.");
+                return new Error($"Рецепт з ID {recipeId} не існує.");
             }
 
             double totalCalories = 0;
@@ -57,7 +57,7 @@ namespace PantryChef.Business.Services
             await _recipeRepo.SaveChangesAsync();
 
             _logger.LogInformation("Успішно оновлено КБЖВ для рецепта {RecipeId}.", recipeId);
-            return Result.Success();
+            return new Success();
         }
 
         public (double Calories, double Proteins, double Fats, double Carbohydrates) CalculateNutrition(Recipe recipe)

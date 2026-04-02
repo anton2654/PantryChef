@@ -40,7 +40,7 @@
         </div>
     </form>
 
-    <form method="get" asp-action="Index" class="mb-4 d-flex align-items-center gap-3">
+    <form method="get" asp-action="Index" class="mb-4 d-flex flex-wrap align-items-center gap-3">
         <label for="category" class="fw-bold mb-0">Фільтр за категорією:</label>
         <select name="category" id="category" class="form-select w-auto">
             <option value="">Всі категорії</option>
@@ -57,6 +57,16 @@
             }
         </select>
         <button type="submit" class="btn btn-primary px-4">Застосувати</button>
+
+        <div class="ms-auto d-flex align-items-center gap-2">
+            <input type="text" name="searchQuery" value="@Model.SearchQuery" class="form-control" placeholder="Пошук інгредієнта..." style="width: 250px;" />
+            <button type="submit" class="btn btn-outline-secondary">Знайти</button>
+            
+            @if (!string.IsNullOrEmpty(Model.SearchQuery) || !string.IsNullOrEmpty(Model.SelectedCategory))
+            {
+                <a asp-action="Index" class="btn btn-outline-danger" title="Скинути всі фільтри">✕</a>
+            }
+        </div>
     </form>
 
     <div class="row row-cols-1 row-cols-md-3 row-cols-lg-5 g-4">
@@ -90,16 +100,25 @@
                             <h6 class="card-title fw-bold mb-1">@item.Ingredient.Name</h6>
                             <p class="text-muted small mb-0">@item.Ingredient.Category</p>
                             
-                            <div class="mt-2 mb-3">
-                                <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2" style="border-radius: 8px;">
-                                    @item.Quantity г/шт
-                                </span>
-                            </div>
+                            <form asp-action="UpdateQuantity" method="post" class="mt-2 mb-3 d-flex align-items-center justify-content-center gap-1">
+                                <input type="hidden" name="ingredientId" value="@item.IngredientId" />
+                                <input type="number" name="quantity" value="@item.Quantity" class="form-control form-control-sm text-center border-success-subtle text-success fw-bold" style="width: 80px; border-radius: 8px;" min="0.1" step="0.1" required />
+                                <span class="text-muted small">г/шт</span>
+                                <button type="submit" class="btn btn-sm btn-success text-white px-2" style="border-radius: 8px;" title="Зберегти кількість">
+                                    ✓
+                                </button>
+                            </form>
 
-                            <div class="mt-auto">
-                                <a asp-action="Details" asp-route-id="@item.IngredientId" class="btn btn-sm btn-outline-primary w-100" style="border-radius: 8px;">
+                            <div class="mt-auto d-flex gap-2">
+                                <a asp-action="Details" asp-route-id="@item.IngredientId" class="btn btn-sm btn-outline-primary w-50" style="border-radius: 8px;">
                                     Деталі
                                 </a>
+                                <form asp-action="RemoveIngredient" method="post" class="w-50">
+                                    <input type="hidden" name="ingredientId" value="@item.IngredientId" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger w-100" style="border-radius: 8px;" onclick="return confirm('Ви впевнені, що хочете видалити цей продукт з холодильника?');">
+                                        Видалити
+                                    </button>
+                                </form>
                             </div>
                         </div>
                     </div>

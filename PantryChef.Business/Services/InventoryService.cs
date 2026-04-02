@@ -25,15 +25,20 @@ namespace PantryChef.Business.Services
             _logger = logger;
         }
 
-        public async Task<IEnumerable<UserIngredient>> GetUserInventoryAsync(int userId, string category = null)
+        public async Task<IEnumerable<UserIngredient>> GetUserInventoryAsync(int userId, string category = null, string searchQuery = null)
         {
-            _logger.LogInformation("Отримання списку запасів для користувача {UserId} з фільтром: {Category}", userId, category ?? "Всі");
+            _logger.LogInformation("Отримання списку запасів для користувача {UserId} з фільтром: {Category}, пошук: {SearchQuery}", userId, category ?? "Всі", searchQuery ?? "Немає");
             
             var inventory = await _inventoryRepo.GetUserInventoryAsync(userId);
 
             if (!string.IsNullOrWhiteSpace(category))
             {
                 inventory = inventory.Where(i => i.Ingredient.Category.Equals(category, System.StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (!string.IsNullOrWhiteSpace(searchQuery))
+            {
+                inventory = inventory.Where(i => i.Ingredient.Name.Contains(searchQuery, System.StringComparison.OrdinalIgnoreCase));
             }
 
             return inventory;
@@ -64,7 +69,7 @@ namespace PantryChef.Business.Services
 
             if (quantity <= 0)
             {
-                return Result.Failure("Кількість має бути більшою за нуль.");
+                return new Error("Кількість має бути більшою за нуль.");
             }
 
             var existingItem = await _inventoryRepo.GetUserIngredientAsync(userId, ingredientId);
@@ -86,6 +91,46 @@ namespace PantryChef.Business.Services
             }
 
             await _inventoryRepo.SaveChangesAsync();
+            return new Success();
+        }
+
+        public async Task<Result> UpdateIngredientQuantityAsync(int userId, int ingredientId, double newQuantity)
+        {
+            _logger.LogInformation("Оновлення кількості інгредієнта {IngredientId} для користувача {UserId} на {NewQuantity}", ingredientId, userId, newQuantity);
+
+            if (newQuantity <= 0)
+            {
+                return Result.Failure("Кількість має бути більшою за нуль. Якщо хочете видалити продукт, скористайтеся відповідною кнопкою.");
+            }
+
+            var item = await _inventoryRepo.GetUserIngredientAsync(userId, ingredientId);
+
+            if (item == null)
+            {
+                return Result.Failure("Інгредієнт не знайдено у холодильнику.");
+            }
+
+            item.Quantity = newQuantity;
+            _inventoryRepo.Update(item);
+            await _inventoryRepo.SaveChangesAsync();
+
+            return Result.Success();
+        }
+
+        public async Task<Result> RemoveIngredientAsync(int userId, int ingredientId)
+        {
+            _logger.LogInformation("Видалення інгредієнта {IngredientId} у користувача {UserId}", ingredientId, userId);
+
+            var item = await _inventoryRepo.GetUserIngredientAsync(userId, ingredientId);
+
+            if (item == null)
+            {
+                return Result.Failure("Інгредієнт не знайдено у холодильнику.");
+            }
+
+            _inventoryRepo.Delete(item); 
+            await _inventoryRepo.SaveChangesAsync();
+
             return Result.Success();
         }
     }

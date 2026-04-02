@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 namespace PantryChef.Web.Controllers
 {
     [AllowAnonymous]
-    public class AccountController : Controller
+    public class AccountController : BaseController
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;

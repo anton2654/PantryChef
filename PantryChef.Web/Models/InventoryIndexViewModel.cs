@@ -8,6 +8,7 @@ namespace PantryChef.Web.Models
     {
         public IEnumerable<UserIngredient> Inventory { get; set; }
         public string SelectedCategory { get; set; }
+        public string SearchQuery { get; set; }
         public IEnumerable<string> AvailableCategories { get; set; }
 
         [Required]

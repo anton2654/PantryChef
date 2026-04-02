@@ -6,10 +6,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
+using Microsoft.AspNetCore.Authorization;
+
 
 namespace PantryChef.Web.Controllers
 {
-    public class InventoryController : Controller
+    [Authorize]
+    public class InventoryController : BaseController
     {
         private readonly IInventoryService _inventoryService;
         private readonly int _currentUserId = 1; // Тимчасово Alice Smith
@@ -20,16 +23,17 @@ namespace PantryChef.Web.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Index(string category = null)
+        public async Task<IActionResult> Index(string category = null, string searchQuery = null)
         {
-            var inventory = await _inventoryService.GetUserInventoryAsync(_currentUserId, category);
-            var categories = await _inventoryService.GetUserInventoryCategoriesAsync(_currentUserId);
+            var inventory = await _inventoryService.GetUserInventoryAsync(CurrentUserId, category, searchQuery);
+            var categories = await _inventoryService.GetUserInventoryCategoriesAsync(CurrentUserId);
             var ingredients = await _inventoryService.GetAvailableIngredientsAsync();
 
             var model = new InventoryIndexViewModel
             {
                 Inventory = inventory ?? Enumerable.Empty<UserIngredient>(),
                 SelectedCategory = category,
+                SearchQuery = searchQuery, 
                 AvailableCategories = categories ?? Enumerable.Empty<string>(),
                 AvailableIngredients = ingredients ?? Enumerable.Empty<Ingredient>(),
                 AddQuantity = 100
@@ -42,15 +46,15 @@ namespace PantryChef.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddIngredient(int ingredientId, double quantity)
         {
-            var result = await _inventoryService.AddOrUpdateIngredientAsync(_currentUserId, ingredientId, quantity);
+            var result = await _inventoryService.AddOrUpdateIngredientAsync(CurrentUserId, ingredientId, quantity);
 
             if (!result.IsSuccess)
             {
-                TempData["ErrorMessage"] = result.ErrorMessage;
+                SetErrorMessage(result.ErrorMessage);
                 return RedirectToAction(nameof(Index));
             }
 
-            TempData["SuccessMessage"] = "Інгредієнт успішно додано до холодильника.";
+            SetSuccessMessage("Інгредієнт успішно додано до холодильника."); 
             return RedirectToAction(nameof(Index));
         }
 
@@ -72,6 +76,42 @@ namespace PantryChef.Web.Controllers
             };
 
             return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateQuantity(int ingredientId, double quantity)
+        {
+            var result = await _inventoryService.UpdateIngredientQuantityAsync(_currentUserId, ingredientId, quantity);
+
+            if (!result.IsSuccess)
+            {
+                TempData["ErrorMessage"] = result.ErrorMessage;
+            }
+            else
+            {
+                TempData["SuccessMessage"] = "Кількість інгредієнта успішно оновлено.";
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RemoveIngredient(int ingredientId)
+        {
+            var result = await _inventoryService.RemoveIngredientAsync(_currentUserId, ingredientId);
+
+            if (!result.IsSuccess)
+            {
+                TempData["ErrorMessage"] = result.ErrorMessage;
+            }
+            else
+            {
+                TempData["SuccessMessage"] = "Інгредієнт видалено з холодильника.";
+            }
+
+            return RedirectToAction(nameof(Index));
         }
 
     }
