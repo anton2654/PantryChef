@@ -28,6 +28,9 @@
                         <li class="nav-item">
                             <a class="nav-link text-dark fw-bold" asp-area="" asp-controller="Recipe" asp-action="Index">Страви</a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark fw-bold" asp-area="" asp-controller="Profile" asp-action="Index">Профіль</a>
+                        </li>
                     </ul>
                     <ul class="navbar-nav">
                         @if (User.Identity is not null && User.Identity.IsAuthenticated)

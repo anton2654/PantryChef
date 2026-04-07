@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using PantryChef.Data.Context;
 using PantryChef.Data.Entities;
 using Serilog;
 using PantryChef.Business.Models;
+using System.Globalization;
 
 namespace PantryChef.Web
 { 
@@ -26,6 +28,19 @@ namespace PantryChef.Web
                 builder.Host.UseSerilog();
 
                 builder.Services.AddControllersWithViews();
+
+                var supportedCultures = new[]
+                {
+                    new CultureInfo("uk-UA"),
+                    new CultureInfo("en-US")
+                };
+
+                builder.Services.Configure<RequestLocalizationOptions>(options =>
+                {
+                    options.DefaultRequestCulture = new RequestCulture("uk-UA");
+                    options.SupportedCultures = supportedCultures;
+                    options.SupportedUICultures = supportedCultures;
+                });
 
                 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
                 if (string.IsNullOrWhiteSpace(connectionString))
@@ -59,9 +74,11 @@ namespace PantryChef.Web
                 builder.Services.AddScoped<PantryChef.Business.Interfaces.INutritionService, PantryChef.Business.Services.NutritionService>();
                 builder.Services.AddScoped<PantryChef.Business.Interfaces.IRecipeService, PantryChef.Business.Services.RecipeService>();
                 builder.Services.AddScoped<PantryChef.Business.Interfaces.IAccountService, PantryChef.Business.Services.AccountService>();
+                builder.Services.AddScoped<PantryChef.Business.Interfaces.IProfileService, PantryChef.Business.Services.ProfileService>();
 
                 builder.Services.AddScoped<PantryChef.Data.Interfaces.IUserIngredientRepository, PantryChef.Data.Repositories.UserIngredientRepository>();
                 builder.Services.AddScoped<PantryChef.Data.Interfaces.IIngredientRepository, PantryChef.Data.Repositories.IngredientRepository>();
+                builder.Services.AddScoped<PantryChef.Data.Interfaces.IUserRepository, PantryChef.Data.Repositories.UserRepository>();
                 builder.Services.AddScoped<PantryChef.Business.Interfaces.IInventoryService, PantryChef.Business.Services.InventoryService>();
 
              
@@ -75,6 +92,11 @@ namespace PantryChef.Web
                 }
                 
                 app.UseMiddleware<PantryChef.Web.Middleware.ExceptionMiddleware>();
+
+                var localizationOptions = app.Services
+                    .GetRequiredService<Microsoft.Extensions.Options.IOptions<RequestLocalizationOptions>>()
+                    .Value;
+                app.UseRequestLocalization(localizationOptions);
 
                 if (!app.Environment.IsDevelopment())
                 {

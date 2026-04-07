@@ -1,0 +1,190 @@
+@model PantryChef.Web.Models.ProfileIndexViewModel
+
+@{
+    ViewData["Title"] = "Профіль користувача";
+}
+
+<div class="container mt-4">
+    <h2 class="mb-4">Профіль користувача</h2>
+
+    @if (TempData["SuccessMessage"] is string successMessage)
+    {
+        <div class="alert alert-success" role="alert">@successMessage</div>
+    }
+
+    @if (TempData["ErrorMessage"] is string errorMessage)
+    {
+        <div class="alert alert-danger" role="alert">@errorMessage</div>
+    }
+
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <h5 class="card-title">Основна інформація</h5>
+            <p class="mb-1"><strong>Ім'я:</strong> @Model.Name</p>
+            <p class="mb-1"><strong>Email:</strong> @Model.Email</p>
+            <p class="mb-0">
+                <strong>Добова норма калорій:</strong> @Model.DailyCalorieGoal ккал
+                @if (Model.IsCalorieGoalManuallySet)
+                {
+                    <span class="badge bg-warning text-dark ms-2">Ручне значення</span>
+                }
+                else
+                {
+                    <span class="badge bg-info text-dark ms-2">Авто-розрахунок</span>
+                }
+            </p>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-12 col-lg-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">1-2. Вага: встановлення та оновлення цілей</h5>
+                    <form asp-action="SetWeightGoals" method="post" class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label for="currentWeightKg" class="form-label">Поточна вага (кг)</label>
+                            <input id="currentWeightKg" name="currentWeightKg" type="number" class="form-control" min="20" max="350" step="0.1" value="@Model.CurrentWeightKg?.ToString(System.Globalization.CultureInfo.InvariantCulture)" required />
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label for="targetWeightKg" class="form-label">Цільова вага (кг)</label>
+                            <input id="targetWeightKg" name="targetWeightKg" type="number" class="form-control" min="20" max="350" step="0.1" value="@Model.TargetWeightKg?.ToString(System.Globalization.CultureInfo.InvariantCulture)" required />
+                        </div>
+                        <div class="col-12 d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">Зберегти цілі</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">3. Скидання цілей</h5>
+                    <p class="text-muted">Скидає цілі по вазі, параметри тіла та добову норму калорій до стандартного значення.</p>
+                    <form asp-action="ResetGoals" method="post">
+                        <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Скинути всі цілі?');">Скинути цілі</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">4. Авто-розрахунок добової норми калорій</h5>
+                    <form asp-action="CalculateDailyCalories" method="post" class="row g-3">
+                        <div class="col-12 col-md-4">
+                            <label for="weightKg" class="form-label">Вага (кг)</label>
+                            <input id="weightKg" name="weightKg" type="number" class="form-control" min="20" max="350" step="0.1" value="@Model.AutoCalculationWeightKg?.ToString(System.Globalization.CultureInfo.InvariantCulture)" required />
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label for="heightCm" class="form-label">Зріст (см)</label>
+                            <input id="heightCm" name="heightCm" type="number" class="form-control" min="100" max="250" step="0.1" value="@Model.AutoCalculationHeightCm?.ToString(System.Globalization.CultureInfo.InvariantCulture)" required />
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label for="age" class="form-label">Вік</label>
+                            <input id="age" name="age" type="number" class="form-control" min="10" max="100" step="1" value="@Model.AutoCalculationAge" required />
+                        </div>
+                        @if (Model.AutoCalculatedCalories.HasValue)
+                        {
+                            <div class="col-12">
+                                <div class="alert alert-info mb-0">
+                                    Розраховано: <strong>@Model.AutoCalculatedCalories.Value ккал</strong>.
+                                    Це значення не збережено, поки ви не натиснете "Зберегти" у блоці ручного редагування калорій.
+                                </div>
+                            </div>
+                        }
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-success">Розрахувати норму калорій</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">5. Ручне редагування калорій</h5>
+                    <form asp-action="UpdateDailyCalories" method="post" class="row g-3">
+                        <div class="col-12 col-md-8">
+                            <label for="dailyCalories" class="form-label">Добова норма (ккал)</label>
+                            <input id="dailyCalories" name="dailyCalories" type="number" class="form-control" min="800" max="6000" step="1" value="@Model.ManualDailyCaloriesInput" required />
+                        </div>
+                        <div class="col-12 col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">Зберегти</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">6. Залишок до цілі</h5>
+
+                    <div class="mb-3">
+                        @if (Model.WeightDifferenceKg.HasValue)
+                        {
+                            if (Model.WeightDifferenceKg.Value == 0)
+                            {
+                                <p class="mb-2 text-success">
+                                    <strong>Ціль по вазі досягнута.</strong>
+                                </p>
+                            }
+                            else if (Model.WeightDifferenceKg.Value > 0)
+                            {
+                                <p class="mb-2">
+                                    <strong>Залишилось досягти цілі:</strong>
+                                    @Model.WeightRemainingKg.Value кг (потрібно набрати)
+                                </p>
+                            }
+                            else
+                            {
+                                <p class="mb-2">
+                                    <strong>Залишилось досягти цілі:</strong>
+                                    @Model.WeightRemainingKg.Value кг (потрібно скинути)
+                                </p>
+                            }
+                        }
+                        else
+                        {
+                            <p class="text-muted mb-2">Щоб побачити прогрес по вазі, встановіть поточну та цільову вагу.</p>
+                        }
+                    </div>
+
+                    <form asp-action="CalculateGoalProgress" method="post" class="row g-3 align-items-end">
+                        <div class="col-12 col-md-4">
+                            <label for="consumedCaloriesToday" class="form-label">Спожито калорій за день</label>
+                            <input id="consumedCaloriesToday" name="consumedCaloriesToday" type="number" class="form-control" min="0" step="1" value="@Model.ConsumedCaloriesToday" required />
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <button type="submit" class="btn btn-outline-primary w-100">Порахувати залишок</button>
+                        </div>
+                    </form>
+
+                    @if (Model.CalorieDifference.HasValue)
+                    {
+                        @if (Model.CalorieExceeded.GetValueOrDefault() > 0)
+                        {
+                            <p class="mt-3 mb-0 text-danger">
+                                <strong>Перевищення калорій за день:</strong>
+                                @Model.CalorieExceeded.Value ккал
+                            </p>
+                        }
+                        else
+                        {
+                            <p class="mt-3 mb-0">
+                                <strong>Залишок калорій за день:</strong>
+                                @Model.CalorieRemaining.GetValueOrDefault() ккал
+                            </p>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

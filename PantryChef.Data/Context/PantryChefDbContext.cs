@@ -26,6 +26,7 @@ namespace PantryChef.Data.Context
                 entity.Property(user => user.Password).IsRequired();
                 entity.Property(user => user.Name).IsRequired();
                 entity.Property(user => user.Allergies).IsRequired();
+                entity.Property(user => user.IsCalorieGoalManuallySet).HasDefaultValue(false);
                 entity.HasIndex(user => user.IdentityUserId).IsUnique();
                 entity
                     .HasOne(user => user.IdentityUser)

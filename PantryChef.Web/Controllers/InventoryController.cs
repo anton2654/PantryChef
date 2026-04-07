@@ -51,6 +51,12 @@ namespace PantryChef.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddIngredient(int ingredientId, double quantity)
         {
+            if (!ModelState.IsValid)
+            {
+                SetErrorMessage("Некоректний формат кількості. Спробуйте значення у форматі 0,1 або 0.1.");
+                return RedirectToAction(nameof(Index));
+            }
+
             var result = await _inventoryService.AddOrUpdateIngredientAsync(CurrentUserId, ingredientId, quantity);
 
             if (!result.IsSuccess)
@@ -87,6 +93,12 @@ namespace PantryChef.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateQuantity(int ingredientId, double quantity)
         {
+            if (!ModelState.IsValid)
+            {
+                TempData["ErrorMessage"] = "Некоректний формат кількості. Спробуйте значення у форматі 0,1 або 0.1.";
+                return RedirectToAction(nameof(Index));
+            }
+
             var result = await _inventoryService.UpdateIngredientQuantityAsync(_currentUserId, ingredientId, quantity);
 
             if (!result.IsSuccess)
