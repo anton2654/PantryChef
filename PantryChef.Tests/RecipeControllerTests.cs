@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Moq;
 using PantryChef.Business.Interfaces;
+using PantryChef.Business.Models;
 using PantryChef.Data.Entities;
 using PantryChef.Web.Controllers;
 using PantryChef.Web.Models;
@@ -179,9 +181,19 @@ public class RecipeControllerTests
         Mock<IRecipeService> recipeServiceMock,
         Mock<INutritionService>? nutritionServiceMock = null)
     {
+        var settings = Options.Create(new PantryChefSettings
+        {
+            RecipeFilter = new RecipeFilterSettings
+            {
+                AllCategoryLabel = "Всі страви",
+                Categories = ["Сніданки", "Обіди", "Вечері"]
+            }
+        });
+
         var controller = new RecipeController(
             recipeServiceMock.Object,
-            nutritionServiceMock?.Object ?? Mock.Of<INutritionService>())
+            nutritionServiceMock?.Object ?? Mock.Of<INutritionService>(),
+            settings)
         {
             TempData = new TempDataDictionary(new DefaultHttpContext(), Mock.Of<ITempDataProvider>())
         };

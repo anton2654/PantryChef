@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using PantryChef.Business.Interfaces;
+using PantryChef.Business.Models;
 using PantryChef.Data.Entities;
 using PantryChef.Web.Models;
 using System;
@@ -14,11 +16,16 @@ namespace PantryChef.Web.Controllers
     {
         private readonly IRecipeService _recipeService;
         private readonly INutritionService _nutritionService;
+        private readonly PantryChefSettings _settings;
 
-        public RecipeController(IRecipeService recipeService, INutritionService nutritionService)
+        public RecipeController(
+            IRecipeService recipeService,
+            INutritionService nutritionService,
+            IOptions<PantryChefSettings> options)
         {
             _recipeService = recipeService;
             _nutritionService = nutritionService;
+            _settings = options?.Value ?? new PantryChefSettings();
         }
 
         [HttpGet]
@@ -34,14 +41,22 @@ namespace PantryChef.Web.Controllers
                 ? await _recipeService.GetAllRecipesWithIngredientsAsync()
                 : await _recipeService.GetRecipesByCategoryAsync(category);
 
-            var dbCategories = new List<string> { "Сніданки", "Обіди", "Вечері", "Десерти", "Салати", "Гарніри", "Закуски", "Снеки", "Пісні страви", "Перші страви", "Другі страви" };
+            var categories = _settings.RecipeFilter.Categories
+                .Where(c => !string.IsNullOrWhiteSpace(c))
+                .Select(c => c.Trim())
+                .Distinct(System.StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var allCategoryLabel = string.IsNullOrWhiteSpace(_settings.RecipeFilter.AllCategoryLabel)
+                ? "Всі страви"
+                : _settings.RecipeFilter.AllCategoryLabel;
 
             var options = new List<RecipeCategoryOptionViewModel>
             {
-                new() { Value = string.Empty, Label = "Всі страви", IsSelected = string.IsNullOrWhiteSpace(category) }
+                new() { Value = string.Empty, Label = allCategoryLabel, IsSelected = string.IsNullOrWhiteSpace(category) }
             };
 
-            foreach (var cat in dbCategories)
+            foreach (var cat in categories)
             {
                 options.Add(new RecipeCategoryOptionViewModel
                 {

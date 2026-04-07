@@ -32,7 +32,7 @@
             </div>
             <div class="col-12 col-md-3">
                 <label for="quantity" class="form-label fw-bold">Кількість</label>
-                <input type="number" name="quantity" id="quantity" class="form-control" min="0.1" step="0.1" value="100" required />
+                <input type="number" name="quantity" id="quantity" class="form-control" min="0.1" step="0.1" value="@Model.AddQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)" required />
             </div>
             <div class="col-12 col-md-3">
                 <button type="submit" class="btn btn-success w-100">Додати</button>
@@ -59,7 +59,7 @@
         <button type="submit" class="btn btn-primary px-4">Застосувати</button>
 
         <div class="ms-auto d-flex align-items-center gap-2">
-            <input type="text" name="searchQuery" value="@Model.SearchQuery" class="form-control" placeholder="Пошук інгредієнта..." style="width: 250px;" />
+            <input type="text" name="searchQuery" value="@Model.SearchQuery" class="form-control" minlength="@Model.MinSearchLength" placeholder="Пошук інгредієнта (мін. @Model.MinSearchLength симв.)..." style="width: 250px;" />
             <button type="submit" class="btn btn-outline-secondary">Знайти</button>
             
             @if (!string.IsNullOrEmpty(Model.SearchQuery) || !string.IsNullOrEmpty(Model.SelectedCategory))

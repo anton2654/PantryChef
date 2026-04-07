@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using PantryChef.Data.Context;
 using PantryChef.Data.Entities;
 using Serilog;
+using PantryChef.Business.Models;
 
 namespace PantryChef.Web
 { 
@@ -10,42 +11,48 @@ namespace PantryChef.Web
     {
         public static void Main(string[] args)
         {
+            var builder = WebApplication.CreateBuilder(args);
+            builder.Configuration.AddUserSecrets(typeof(Program).Assembly, optional: true, reloadOnChange: true);
+
             Log.Logger = new LoggerConfiguration()
-                .WriteTo.Console()
-                .WriteTo.Seq("http://localhost:5341") 
+                .ReadFrom.Configuration(builder.Configuration) 
                 .CreateLogger();
 
             try
             {
                 Log.Information("Запуск веб-додатка PantryChef...");
 
-                var builder = WebApplication.CreateBuilder(args);
 
                 builder.Host.UseSerilog();
 
                 builder.Services.AddControllersWithViews();
 
+                var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+                if (string.IsNullOrWhiteSpace(connectionString))
+                {
+                    throw new InvalidOperationException(
+                        "Не знайдено ConnectionStrings:DefaultConnection. " +
+                        "Додайте секрет командою: " +
+                        "dotnet user-secrets set \"ConnectionStrings:DefaultConnection\" \"<your-connection-string>\" --project PantryChef.Web");
+                }
+
                 builder.Services.AddDbContext<PantryChefDbContext>(options =>
-                    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+                    options.UseNpgsql(connectionString));
+
+                builder.Services.Configure<PantryChefSettings>(builder.Configuration.GetSection("PantryChefSettings"));
 
                 builder.Services
                     .AddIdentity<ApplicationUser, IdentityRole>(options =>
                     {
-                        options.Password.RequireDigit = true;
-                        options.Password.RequireLowercase = true;
-                        options.Password.RequireUppercase = true;
-                        options.Password.RequireNonAlphanumeric = false;
-                        options.Password.RequiredLength = 8;
-
-                        options.User.RequireUniqueEmail = true;
+                        builder.Configuration.GetSection("IdentitySettings").Bind(options);
                     })
                     .AddEntityFrameworkStores<PantryChefDbContext>()
                     .AddDefaultTokenProviders();
 
                 builder.Services.ConfigureApplicationCookie(options =>
                 {
-                    options.LoginPath = "/Account/Login";
-                    options.AccessDeniedPath = "/Account/Login";
+                    options.LoginPath = builder.Configuration["CookieSettings:LoginPath"];
+                    options.AccessDeniedPath = builder.Configuration["CookieSettings:AccessDeniedPath"];
                 });
 
                 builder.Services.AddScoped<PantryChef.Data.Interfaces.IRecipeRepository, PantryChef.Data.Repositories.RecipeRepository>();
@@ -57,6 +64,8 @@ namespace PantryChef.Web
                 builder.Services.AddScoped<PantryChef.Data.Interfaces.IIngredientRepository, PantryChef.Data.Repositories.IngredientRepository>();
                 builder.Services.AddScoped<PantryChef.Business.Interfaces.IInventoryService, PantryChef.Business.Services.InventoryService>();
 
+             
+                
                 var app = builder.Build();
 
                 using (var scope = app.Services.CreateScope())

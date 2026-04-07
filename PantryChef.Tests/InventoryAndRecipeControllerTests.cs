@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Moq;
@@ -36,7 +37,7 @@ public class InventoryAndRecipeControllerTests
             .Setup(service => service.GetAvailableIngredientsAsync())
             .ReturnsAsync(ingredients);
 
-        var controller = new InventoryController(inventoryServiceMock.Object);
+        var controller = CreateInventoryController(inventoryServiceMock);
 
         var result = await controller.Index();
 
@@ -59,7 +60,7 @@ public class InventoryAndRecipeControllerTests
             .ReturnsAsync((Recipe)null!);
 
         var nutritionServiceMock = new Mock<INutritionService>();
-        var controller = new RecipeController(recipeServiceMock.Object, nutritionServiceMock.Object);
+        var controller = CreateRecipeController(recipeServiceMock, nutritionServiceMock);
 
         var result = await controller.Details(42);
 
@@ -88,7 +89,7 @@ public class InventoryAndRecipeControllerTests
             .Setup(service => service.CalculateNutrition(recipe))
             .Returns((100, 10, 5, 12));
 
-        var controller = new RecipeController(recipeServiceMock.Object, nutritionServiceMock.Object);
+        var controller = CreateRecipeController(recipeServiceMock, nutritionServiceMock);
 
         var result = await controller.Details(7);
 
@@ -107,10 +108,7 @@ public class InventoryAndRecipeControllerTests
 
         var recipeServiceMock = new Mock<IRecipeService>();
 
-        var controller = new RecipeController(recipeServiceMock.Object, nutritionServiceMock.Object)
-        {
-            TempData = new TempDataDictionary(new DefaultHttpContext(), Mock.Of<ITempDataProvider>())
-        };
+        var controller = CreateRecipeController(recipeServiceMock, nutritionServiceMock);
 
         var result = await controller.CalculateNutrition(3);
 
@@ -129,10 +127,7 @@ public class InventoryAndRecipeControllerTests
             .Setup(s => s.RemoveIngredientAsync(1, 5))
             .ReturnsAsync(Result.Success());
 
-        var controller = new InventoryController(inventoryServiceMock.Object)
-        {
-            TempData = new TempDataDictionary(new DefaultHttpContext(), Mock.Of<ITempDataProvider>())
-        };
+        var controller = CreateInventoryController(inventoryServiceMock);
 
         var result = await controller.RemoveIngredient(5);
 
@@ -150,10 +145,7 @@ public class InventoryAndRecipeControllerTests
             .Setup(s => s.RemoveIngredientAsync(1, 6))
             .ReturnsAsync(Result.Failure("Not allowed"));
 
-        var controller = new InventoryController(inventoryServiceMock.Object)
-        {
-            TempData = new TempDataDictionary(new DefaultHttpContext(), Mock.Of<ITempDataProvider>())
-        };
+        var controller = CreateInventoryController(inventoryServiceMock);
 
         var result = await controller.RemoveIngredient(6);
 
@@ -171,10 +163,7 @@ public class InventoryAndRecipeControllerTests
             .Setup(s => s.UpdateIngredientQuantityAsync(1, 8, 2.5))
             .ReturnsAsync(Result.Success());
 
-        var controller = new InventoryController(inventoryServiceMock.Object)
-        {
-            TempData = new TempDataDictionary(new DefaultHttpContext(), Mock.Of<ITempDataProvider>())
-        };
+        var controller = CreateInventoryController(inventoryServiceMock);
 
         var result = await controller.UpdateQuantity(8, 2.5);
 
@@ -192,10 +181,7 @@ public class InventoryAndRecipeControllerTests
             .Setup(s => s.UpdateIngredientQuantityAsync(1, 9, 0))
             .ReturnsAsync(Result.Failure("Invalid quantity"));
 
-        var controller = new InventoryController(inventoryServiceMock.Object)
-        {
-            TempData = new TempDataDictionary(new DefaultHttpContext(), Mock.Of<ITempDataProvider>())
-        };
+        var controller = CreateInventoryController(inventoryServiceMock);
 
         var result = await controller.UpdateQuantity(9, 0);
 
@@ -230,7 +216,7 @@ public class InventoryAndRecipeControllerTests
             .Setup(s => s.GetAvailableIngredientsAsync())
             .ReturnsAsync(ingredients);
 
-        var controller = new InventoryController(inventoryServiceMock.Object);
+        var controller = CreateInventoryController(inventoryServiceMock);
 
         var result = await controller.Index(null, "Час");
 
@@ -239,5 +225,41 @@ public class InventoryAndRecipeControllerTests
         Assert.Equal("Час", model.SearchQuery);
         Assert.Same(inventoryItems, model.Inventory);
         inventoryServiceMock.Verify(s => s.GetUserInventoryAsync(1, null, "Час"), Times.Once);
+    }
+
+    private static InventoryController CreateInventoryController(Mock<IInventoryService> inventoryServiceMock)
+    {
+        var settings = Options.Create(new PantryChefSettings
+        {
+            Inventory = new InventorySettings
+            {
+                DefaultAddQuantity = 100,
+                MinSearchLength = 2
+            }
+        });
+
+        return new InventoryController(inventoryServiceMock.Object, settings)
+        {
+            TempData = new TempDataDictionary(new DefaultHttpContext(), Mock.Of<ITempDataProvider>())
+        };
+    }
+
+    private static RecipeController CreateRecipeController(
+        Mock<IRecipeService> recipeServiceMock,
+        Mock<INutritionService> nutritionServiceMock)
+    {
+        var settings = Options.Create(new PantryChefSettings
+        {
+            RecipeFilter = new RecipeFilterSettings
+            {
+                AllCategoryLabel = "Всі страви",
+                Categories = ["Сніданки", "Обіди", "Вечері"]
+            }
+        });
+
+        return new RecipeController(recipeServiceMock.Object, nutritionServiceMock.Object, settings)
+        {
+            TempData = new TempDataDictionary(new DefaultHttpContext(), Mock.Of<ITempDataProvider>())
+        };
     }
 }

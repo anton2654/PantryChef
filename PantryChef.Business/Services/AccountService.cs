@@ -7,6 +7,8 @@ using PantryChef.Data.Context;
 using PantryChef.Data.Entities;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Options;
+
 
 namespace PantryChef.Business.Services
 {
@@ -15,15 +17,18 @@ namespace PantryChef.Business.Services
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly PantryChefDbContext _dbContext;
         private readonly ILogger<AccountService> _logger;
+        private readonly PantryChefSettings _settings;
 
         public AccountService(
             UserManager<ApplicationUser> userManager,
             PantryChefDbContext dbContext,
-            ILogger<AccountService> logger)
+            ILogger<AccountService> logger,
+            IOptions<PantryChefSettings> options)
         {
             _userManager = userManager;
             _dbContext = dbContext;
             _logger = logger;
+            _settings = options.Value;
         }
 
         public async Task<Result<ApplicationUser>> RegisterUserAsync(string email, string password, string fullName)
@@ -87,7 +92,7 @@ namespace PantryChef.Business.Services
                 Email = identityEmail,
                 Password = "IDENTITY_MANAGED",
                 Name = ResolveDisplayName(preferredName, identityEmail),
-                CalorieGoals = 2000,
+                CalorieGoals = _settings.DefaultCalorieGoals,
                 Allergies = "none",
                 IdentityUserId = identityUser.Id
             };

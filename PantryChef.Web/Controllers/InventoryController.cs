@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using PantryChef.Business.Interfaces;
+using PantryChef.Business.Models;
 using PantryChef.Data.Entities;
 using PantryChef.Web.Models;
 using System.Collections.Generic;
@@ -15,11 +17,13 @@ namespace PantryChef.Web.Controllers
     public class InventoryController : BaseController
     {
         private readonly IInventoryService _inventoryService;
+        private readonly PantryChefSettings _settings;
         private readonly int _currentUserId = 1; // Тимчасово Alice Smith
 
-        public InventoryController(IInventoryService inventoryService)
+        public InventoryController(IInventoryService inventoryService, IOptions<PantryChefSettings> options)
         {
             _inventoryService = inventoryService;
+            _settings = options?.Value ?? new PantryChefSettings();
         }
 
         [HttpGet]
@@ -36,7 +40,8 @@ namespace PantryChef.Web.Controllers
                 SearchQuery = searchQuery, 
                 AvailableCategories = categories ?? Enumerable.Empty<string>(),
                 AvailableIngredients = ingredients ?? Enumerable.Empty<Ingredient>(),
-                AddQuantity = 100
+                AddQuantity = _settings.Inventory.DefaultAddQuantity,
+                MinSearchLength = _settings.Inventory.MinSearchLength
             };
 
             return View(model);

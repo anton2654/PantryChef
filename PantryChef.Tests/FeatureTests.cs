@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using Moq;
 using PantryChef.Business.Interfaces;
+using PantryChef.Business.Models;
 using PantryChef.Business.Services;
 using PantryChef.Data.Entities;
 using PantryChef.Web.Controllers;
@@ -22,7 +24,7 @@ namespace PantryChef.Tests
             // Arrange
             var recipeServiceMock = new Mock<IRecipeService>();
             var nutritionServiceMock = new Mock<INutritionService>();
-            var controller = new RecipeController(recipeServiceMock.Object, nutritionServiceMock.Object);
+            var controller = CreateRecipeController(recipeServiceMock, nutritionServiceMock);
             
             string category = "Сніданки";
             var recipes = new List<Recipe> { new Recipe { Id = 1, Name = "Яєчня", Description = "Проста страва", Category = "Сніданки" } };
@@ -46,7 +48,7 @@ namespace PantryChef.Tests
         {
             // Arrange
             var inventoryServiceMock = new Mock<IInventoryService>();
-            var controller = new InventoryController(inventoryServiceMock.Object);
+            var controller = CreateInventoryController(inventoryServiceMock);
             
             int ingredientId = 1;
             var inventory = new List<UserIngredient> 
@@ -74,7 +76,7 @@ namespace PantryChef.Tests
         public async Task InventoryDetails_ShouldReturnNotFound_WhenIngredientNotInInventory()
         {
             var inventoryServiceMock = new Mock<IInventoryService>();
-            var controller = new InventoryController(inventoryServiceMock.Object);
+            var controller = CreateInventoryController(inventoryServiceMock);
             
             inventoryServiceMock.Setup(s => s.GetUserInventoryAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>()))
                 .ReturnsAsync(new List<UserIngredient>());
@@ -116,6 +118,36 @@ namespace PantryChef.Tests
             Assert.Equal(15, result.Fats);
             // (20 * 2.0) + (40 * 0.5) = 40 + 20 = 60
             Assert.Equal(60, result.Carbohydrates);
+        }
+
+        private static InventoryController CreateInventoryController(Mock<IInventoryService> inventoryServiceMock)
+        {
+            var settings = Options.Create(new PantryChefSettings
+            {
+                Inventory = new InventorySettings
+                {
+                    DefaultAddQuantity = 100,
+                    MinSearchLength = 2
+                }
+            });
+
+            return new InventoryController(inventoryServiceMock.Object, settings);
+        }
+
+        private static RecipeController CreateRecipeController(
+            Mock<IRecipeService> recipeServiceMock,
+            Mock<INutritionService> nutritionServiceMock)
+        {
+            var settings = Options.Create(new PantryChefSettings
+            {
+                RecipeFilter = new RecipeFilterSettings
+                {
+                    AllCategoryLabel = "Всі страви",
+                    Categories = ["Сніданки", "Обіди", "Вечері"]
+                }
+            });
+
+            return new RecipeController(recipeServiceMock.Object, nutritionServiceMock.Object, settings);
         }
     }
 }

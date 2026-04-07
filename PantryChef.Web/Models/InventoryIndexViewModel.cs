@@ -19,6 +19,8 @@ namespace PantryChef.Web.Models
         [Display(Name = "Кількість")]
         public double AddQuantity { get; set; }
 
+        public int MinSearchLength { get; set; }
+
         public IEnumerable<Ingredient> AvailableIngredients { get; set; }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using PantryChef.Business.Interfaces;
 using PantryChef.Business.Models;
 using PantryChef.Data.Entities;
@@ -14,15 +15,18 @@ namespace PantryChef.Business.Services
         private readonly IUserIngredientRepository _inventoryRepo;
         private readonly IIngredientRepository _ingredientRepo;
         private readonly ILogger<InventoryService> _logger;
+        private readonly PantryChefSettings _settings;
 
         public InventoryService(
             IUserIngredientRepository inventoryRepo,
             IIngredientRepository ingredientRepo,
-            ILogger<InventoryService> logger)
+            ILogger<InventoryService> logger,
+            IOptions<PantryChefSettings> options)
         {
             _inventoryRepo = inventoryRepo;
             _ingredientRepo = ingredientRepo;
             _logger = logger;
+            _settings = options?.Value ?? new PantryChefSettings();
         }
 
         public async Task<IEnumerable<UserIngredient>> GetUserInventoryAsync(int userId, string category = null, string searchQuery = null)
@@ -30,6 +34,7 @@ namespace PantryChef.Business.Services
             _logger.LogInformation("Отримання списку запасів для користувача {UserId} з фільтром: {Category}, пошук: {SearchQuery}", userId, category ?? "Всі", searchQuery ?? "Немає");
             
             var inventory = await _inventoryRepo.GetUserInventoryAsync(userId);
+            var minSearchLength = _settings.Inventory.MinSearchLength;
 
             if (!string.IsNullOrWhiteSpace(category))
             {
@@ -38,7 +43,14 @@ namespace PantryChef.Business.Services
 
             if (!string.IsNullOrWhiteSpace(searchQuery))
             {
-                inventory = inventory.Where(i => i.Ingredient.Name.Contains(searchQuery, System.StringComparison.OrdinalIgnoreCase));
+                var normalizedSearchQuery = searchQuery.Trim();
+
+                if (normalizedSearchQuery.Length < minSearchLength)
+                {
+                    return inventory;
+                }
+
+                inventory = inventory.Where(i => i.Ingredient.Name.Contains(normalizedSearchQuery, System.StringComparison.OrdinalIgnoreCase));
             }
 
             return inventory;
