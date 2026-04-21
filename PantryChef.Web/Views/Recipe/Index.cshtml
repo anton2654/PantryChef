@@ -5,7 +5,10 @@
 }
 
 <div class="container mt-4">
-    <h2 class="mb-4">Меню страв</h2>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">Меню страв</h2>
+        <a asp-action="Create" class="btn btn-success">Додати страву</a>
+    </div>
 
     <form method="get" asp-action="Filter" class="mb-4 d-flex align-items-center gap-3">
         <label for="category" class="fw-bold mb-0">Фільтр за категорією:</label>
@@ -41,7 +44,11 @@
                         <div style="height: 200px; overflow: hidden; border-top-left-radius: 12px; border-top-right-radius: 12px; background-color: #d9d9d9;">
                             @if (!string.IsNullOrEmpty(item.Photo))
                             {
-                                <img src="@item.Photo" alt="@item.Name" class="w-100 h-100" style="object-fit: cover;" />
+                                <img src="@item.Photo" alt="@item.Name" class="w-100 h-100" style="object-fit: cover;" onerror="this.onerror=null;this.src='https://placehold.co/640x360/e9ecef/6c757d?text=No+Image';" />
+                            }
+                            else
+                            {
+                                <img src="https://placehold.co/640x360/e9ecef/6c757d?text=No+Image" alt="Немає зображення" class="w-100 h-100" style="object-fit: cover;" />
                             }
                         </div>
                         <div class="card-body text-center d-flex flex-column">
@@ -50,6 +57,10 @@
                             
                             <div class="mt-auto">
                                 <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-primary w-100" style="border-radius: 8px;">Деталі</a>
+                                <div class="d-flex gap-2 mt-2">
+                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-secondary w-50" style="border-radius: 8px;">Редагувати</a>
+                                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-outline-danger w-50" style="border-radius: 8px;">Видалити</a>
+                                </div>
                             </div>
                         </div>
                     </div>

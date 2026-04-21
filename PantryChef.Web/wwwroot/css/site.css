@@ -8,8 +8,14 @@ html {
   }
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+.btn:focus,
+.btn:active:focus,
+.btn-link.nav-link:focus,
+.form-control:focus,
+.form-check-input:focus {
+  box-shadow:
+    0 0 0 0.1rem white,
+    0 0 0 0.25rem #258cfb;
 }
 
 html {
@@ -19,4 +25,41 @@ html {
 
 body {
   margin-bottom: 60px;
+}
+
+.btn-logout {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  font-weight: 600;
+  color: #ffffff;
+  background: linear-gradient(90deg, #ff6b6b, #ff4757);
+  border-radius: 0.375rem;
+  border: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  transition:
+    transform 0.08s ease,
+    box-shadow 0.12s ease,
+    filter 0.12s ease;
+  text-decoration: none;
+}
+
+.btn-logout:hover,
+.btn-logout:focus {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.18);
+  filter: brightness(0.98);
+  text-decoration: none;
+  color: #fff;
+}
+
+.btn-logout svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+
+.btn-logout:active {
+  transform: translateY(0);
 }
