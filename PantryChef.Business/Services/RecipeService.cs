@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using PantryChef.Business.Interfaces;
@@ -17,6 +18,8 @@ namespace PantryChef.Business.Services
 {
     public class RecipeService : IRecipeService
     {
+        private const string AvailableCategoriesCacheKey = "recipe:available-categories";
+
         private static readonly HttpClient _photoResolverClient = CreatePhotoResolverClient();
         private static readonly ConcurrentDictionary<string, byte> _failedPhotoResolveCache = new(StringComparer.OrdinalIgnoreCase);
 
@@ -34,15 +37,18 @@ namespace PantryChef.Business.Services
 
         private readonly IRecipeRepository _recipeRepo;
         private readonly ILogger<RecipeService> _logger;
+        private readonly IMemoryCache _cache;
         private readonly PantryChefSettings _settings;
 
         public RecipeService(
             IRecipeRepository recipeRepo,
             ILogger<RecipeService> logger,
+            IMemoryCache cache,
             IOptions<PantryChefSettings> options)
         {
             _recipeRepo = recipeRepo;
             _logger = logger;
+            _cache = cache;
             _settings = options?.Value ?? new PantryChefSettings();
         }
 
@@ -51,7 +57,7 @@ namespace PantryChef.Business.Services
             _logger.LogInformation("Отримання всіх рецептів з інгредієнтами.");
             var recipes = (await _recipeRepo.GetAllRecipesWithIngredientsAsync()).ToList();
             await ResolveAndPersistPhotoLinksAsync(recipes);
-            return ApplyDefaultPageSize(recipes);
+            return recipes;
         }
 
         public async Task<IEnumerable<Recipe>> GetRecipesByCategoryAsync(string category)
@@ -59,13 +65,29 @@ namespace PantryChef.Business.Services
             _logger.LogInformation("Отримання рецептів за категорією: {Category}", category);
             var recipes = (await _recipeRepo.GetRecipesByCategoryAsync(category)).ToList();
             await ResolveAndPersistPhotoLinksAsync(recipes);
-            return ApplyDefaultPageSize(recipes);
+            return recipes;
         }
 
         public async Task<IEnumerable<string>> GetAvailableCategoriesAsync()
         {
             _logger.LogInformation("Отримання доступних категорій страв.");
-            return await _recipeRepo.GetAvailableCategoriesAsync();
+
+            if (_cache.TryGetValue(AvailableCategoriesCacheKey, out List<string> cachedCategories))
+            {
+                return cachedCategories;
+            }
+
+            var categories = (await _recipeRepo.GetAvailableCategoriesAsync()).ToList();
+            var ttlMinutes = _settings.Caching.AvailableRecipeCategoriesTtlMinutes > 0
+                ? _settings.Caching.AvailableRecipeCategoriesTtlMinutes
+                : 30;
+
+            _cache.Set(
+                AvailableCategoriesCacheKey,
+                categories,
+                TimeSpan.FromMinutes(ttlMinutes));
+
+            return categories;
         }
 
         public async Task<Recipe> GetRecipeWithIngredientsByIdAsync(int id)
@@ -124,6 +146,7 @@ namespace PantryChef.Business.Services
 
                 await _recipeRepo.AddRecipeAsync(recipe);
                 await _recipeRepo.SaveChangesAsync();
+                InvalidateAvailableCategoriesCache();
 
                 _logger.LogInformation("Користувач додав страву {RecipeName}", recipe.Name);
                 return Result<int>.Success(recipe.Id);
@@ -189,6 +212,7 @@ namespace PantryChef.Business.Services
 
                 _recipeRepo.UpdateRecipe(recipe);
                 await _recipeRepo.SaveChangesAsync();
+                InvalidateAvailableCategoriesCache();
 
                 _logger.LogInformation("Користувач оновив страву {RecipeName} (ID: {RecipeId})", recipe.Name, recipe.Id);
                 return Result.Success();
@@ -222,6 +246,7 @@ namespace PantryChef.Business.Services
 
                 _recipeRepo.DeleteRecipe(recipe);
                 await _recipeRepo.SaveChangesAsync();
+                InvalidateAvailableCategoriesCache();
 
                 _logger.LogInformation("Користувач видалив страву {RecipeName} (ID: {RecipeId})", recipe.Name, recipeId);
                 return Result.Success();
@@ -305,12 +330,6 @@ namespace PantryChef.Business.Services
                 _logger.LogError(exception, "Помилка під час отримання страви {RecipeId} для видалення", recipeId);
                 return Result<RecipeDeleteModel>.Failure("Не вдалося завантажити страву для видалення.");
             }
-        }
-
-        private IEnumerable<Recipe> ApplyDefaultPageSize(IEnumerable<Recipe> recipes)
-        {
-            var pageSize = _settings.Pagination.DefaultPageSize;
-            return pageSize > 0 ? recipes.Take(pageSize) : recipes;
         }
 
         private static string ValidateRecipeData(
@@ -493,6 +512,11 @@ namespace PantryChef.Business.Services
                    || normalizedUrl.Contains(".bmp")
                    || normalizedUrl.Contains(".svg")
                    || normalizedUrl.Contains(".avif");
+        }
+
+        private void InvalidateAvailableCategoriesCache()
+        {
+            _cache.Remove(AvailableCategoriesCacheKey);
         }
 
         private static HttpClient CreatePhotoResolverClient()

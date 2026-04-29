@@ -32,15 +32,35 @@ namespace PantryChef.Web.Controllers
         [HttpGet]
         public async Task<IActionResult> Index()
         {
-            return await Filter(null);
+            return await Filter(null, 1);
         }
 
         [HttpGet]
-        public async Task<IActionResult> Filter(string category = null)
+        public async Task<IActionResult> Filter(string category = null, int page = 1)
         {
             var recipes = string.IsNullOrWhiteSpace(category)
                 ? await _recipeService.GetAllRecipesWithIngredientsAsync()
                 : await _recipeService.GetRecipesByCategoryAsync(category);
+
+            var allRecipes = (recipes ?? Enumerable.Empty<Recipe>()).ToList();
+            var pageSize = _settings.Pagination.DefaultPageSize > 0 ? _settings.Pagination.DefaultPageSize : 12;
+            var totalItems = allRecipes.Count;
+            var totalPages = totalItems == 0
+                ? 0
+                : (int)Math.Ceiling(totalItems / (double)pageSize);
+
+            var currentPage = page < 1 ? 1 : page;
+            if (totalPages > 0 && currentPage > totalPages)
+            {
+                currentPage = totalPages;
+            }
+
+            var pagedRecipes = totalItems == 0
+                ? new List<Recipe>()
+                : allRecipes
+                    .Skip((currentPage - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToList();
 
             var categories = ((await _recipeService.GetAvailableCategoriesAsync()) ?? Enumerable.Empty<string>())
                 .Where(c => !string.IsNullOrWhiteSpace(c))
@@ -78,9 +98,13 @@ namespace PantryChef.Web.Controllers
 
             var model = new RecipeIndexViewModel
             {
-                Recipes = recipes,
+                Recipes = pagedRecipes,
                 SelectedCategory = category ?? string.Empty,
-                Categories = options
+                Categories = options,
+                CurrentPage = currentPage,
+                TotalPages = totalPages,
+                PageSize = pageSize,
+                TotalItems = totalItems
             };
 
             return View(nameof(Index), model);

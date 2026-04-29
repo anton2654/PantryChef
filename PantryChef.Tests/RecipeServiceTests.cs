@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -278,19 +279,39 @@ public class RecipeServiceTests
         recipeRepositoryMock.Verify(repository => repository.SaveChangesAsync(), Times.Never);
     }
 
-    private static RecipeService CreateService(Mock<IRecipeRepository> recipeRepositoryMock)
+    [Fact]
+    public async Task GetAvailableCategoriesAsync_WhenCalledTwice_UsesCache()
+    {
+        var recipeRepositoryMock = new Mock<IRecipeRepository>();
+        recipeRepositoryMock
+            .Setup(repository => repository.GetAvailableCategoriesAsync())
+            .ReturnsAsync(new List<string> { "Сніданки", "Обіди" });
+
+        using var cache = new MemoryCache(new MemoryCacheOptions());
+        var sut = CreateService(recipeRepositoryMock, cache);
+
+        var firstResult = (await sut.GetAvailableCategoriesAsync()).ToList();
+        var secondResult = (await sut.GetAvailableCategoriesAsync()).ToList();
+
+        Assert.Equal(2, firstResult.Count);
+        Assert.Equal(2, secondResult.Count);
+        recipeRepositoryMock.Verify(repository => repository.GetAvailableCategoriesAsync(), Times.Once);
+    }
+
+    private static RecipeService CreateService(Mock<IRecipeRepository> recipeRepositoryMock, IMemoryCache? cache = null)
     {
         var settings = Options.Create(new PantryChefSettings
         {
-            Pagination = new PaginationSettings
+            Caching = new CachingSettings
             {
-                DefaultPageSize = 20
+                AvailableRecipeCategoriesTtlMinutes = 30
             }
         });
 
         return new RecipeService(
             recipeRepositoryMock.Object,
             Mock.Of<ILogger<RecipeService>>(),
+            cache ?? new MemoryCache(new MemoryCacheOptions()),
             settings);
     }
 }

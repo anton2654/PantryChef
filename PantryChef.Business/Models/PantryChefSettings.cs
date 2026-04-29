@@ -8,6 +8,7 @@ namespace PantryChef.Business.Models
         public PaginationSettings Pagination { get; set; } = new();
         public InventorySettings Inventory { get; set; } = new();
         public RecipeFilterSettings RecipeFilter { get; set; } = new();
+        public CachingSettings Caching { get; set; } = new();
     }
 
     public class PaginationSettings
@@ -38,5 +39,11 @@ namespace PantryChef.Business.Models
             "Перші страви",
             "Другі страви"
         ];
+    }
+
+    public class CachingSettings
+    {
+        public int AvailableIngredientsTtlMinutes { get; set; } = 30;
+        public int AvailableRecipeCategoriesTtlMinutes { get; set; } = 30;
     }
 }

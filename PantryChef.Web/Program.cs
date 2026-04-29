@@ -28,6 +28,7 @@ namespace PantryChef.Web
                 builder.Host.UseSerilog();
 
                 builder.Services.AddControllersWithViews();
+                builder.Services.AddMemoryCache();
 
                 var supportedCultures = new[]
                 {
@@ -105,10 +106,12 @@ namespace PantryChef.Web
                 }
 
                 app.UseHttpsRedirection();
+                app.UseMiddleware<PantryChef.Web.Middleware.RequestTimingMiddleware>();
                 app.UseStaticFiles();
 
                 app.UseRouting();
                 app.UseAuthentication();
+                app.UseMiddleware<PantryChef.Web.Middleware.RequestLoggingMiddleware>();
                 app.UseAuthorization();
 
                 app.MapControllerRoute(

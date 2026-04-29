@@ -25,6 +25,7 @@
                 }
             }
         </select>
+        <input type="hidden" name="page" value="1" />
         <button type="submit" class="btn btn-primary">Застосувати</button>
     </form>
 
@@ -68,4 +69,41 @@
             }
         }
     </div>
+
+    @if (Model.TotalPages > 1)
+    {
+        <nav aria-label="Навігація сторінками" class="mt-4">
+            <ul class="pagination justify-content-center mb-0">
+                <li class="page-item @(Model.HasPreviousPage ? string.Empty : "disabled")">
+                    <a class="page-link"
+                       asp-action="Filter"
+                       asp-route-category="@Model.SelectedCategory"
+                       asp-route-page="@(Model.CurrentPage - 1)">
+                        Попередня
+                    </a>
+                </li>
+
+                @for (var pageNumber = 1; pageNumber <= Model.TotalPages; pageNumber++)
+                {
+                    <li class="page-item @(pageNumber == Model.CurrentPage ? "active" : string.Empty)">
+                        <a class="page-link"
+                           asp-action="Filter"
+                           asp-route-category="@Model.SelectedCategory"
+                           asp-route-page="@pageNumber">
+                            @pageNumber
+                        </a>
+                    </li>
+                }
+
+                <li class="page-item @(Model.HasNextPage ? string.Empty : "disabled")">
+                    <a class="page-link"
+                       asp-action="Filter"
+                       asp-route-category="@Model.SelectedCategory"
+                       asp-route-page="@(Model.CurrentPage + 1)">
+                        Наступна
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    }
 </div>

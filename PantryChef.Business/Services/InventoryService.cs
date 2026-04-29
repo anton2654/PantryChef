@@ -1,9 +1,11 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using PantryChef.Business.Interfaces;
 using PantryChef.Business.Models;
 using PantryChef.Data.Entities;
 using PantryChef.Data.Interfaces;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Linq;
@@ -12,20 +14,25 @@ namespace PantryChef.Business.Services
 {
     public class InventoryService : IInventoryService
     {
+        private const string AvailableIngredientsCacheKey = "inventory:available-ingredients";
+
         private readonly IUserIngredientRepository _inventoryRepo;
         private readonly IIngredientRepository _ingredientRepo;
         private readonly ILogger<InventoryService> _logger;
+        private readonly IMemoryCache _cache;
         private readonly PantryChefSettings _settings;
 
         public InventoryService(
             IUserIngredientRepository inventoryRepo,
             IIngredientRepository ingredientRepo,
             ILogger<InventoryService> logger,
+            IMemoryCache cache,
             IOptions<PantryChefSettings> options)
         {
             _inventoryRepo = inventoryRepo;
             _ingredientRepo = ingredientRepo;
             _logger = logger;
+            _cache = cache;
             _settings = options?.Value ?? new PantryChefSettings();
         }
 
@@ -58,11 +65,25 @@ namespace PantryChef.Business.Services
 
         public async Task<IEnumerable<Ingredient>> GetAvailableIngredientsAsync()
         {
-            var ingredients = await _ingredientRepo.GetAllAsync();
+            if (_cache.TryGetValue(AvailableIngredientsCacheKey, out List<Ingredient> cachedIngredients))
+            {
+                return cachedIngredients;
+            }
 
-            return ingredients
+            var ingredients = (await _ingredientRepo.GetAllAsync())
                 .OrderBy(i => i.Name)
                 .ToList();
+
+            var ttlMinutes = _settings.Caching.AvailableIngredientsTtlMinutes > 0
+                ? _settings.Caching.AvailableIngredientsTtlMinutes
+                : 30;
+
+            _cache.Set(
+                AvailableIngredientsCacheKey,
+                ingredients,
+                TimeSpan.FromMinutes(ttlMinutes));
+
+            return ingredients;
         }
 
         public async Task<IEnumerable<string>> GetUserInventoryCategoriesAsync(int userId)

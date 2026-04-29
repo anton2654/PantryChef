@@ -102,6 +102,42 @@ public class RecipeControllerTests
     }
 
     [Fact]
+    public async Task Filter_WhenPageIsProvided_ReturnsRecipesForRequestedPage()
+    {
+        var allRecipes = Enumerable
+            .Range(1, 25)
+            .Select(index => new Recipe
+            {
+                Id = index,
+                Name = $"Recipe {index}",
+                Description = "desc",
+                Photo = "img.jpg",
+                Category = "Сніданки"
+            })
+            .ToList();
+
+        var recipeServiceMock = new Mock<IRecipeService>();
+        recipeServiceMock
+            .Setup(service => service.GetAllRecipesWithIngredientsAsync())
+            .ReturnsAsync(allRecipes);
+
+        var sut = CreateController(recipeServiceMock, pageSize: 10);
+
+        var result = await sut.Filter(null, 2);
+
+        var viewResult = Assert.IsType<ViewResult>(result);
+        var model = Assert.IsType<RecipeIndexViewModel>(viewResult.Model);
+
+        Assert.Equal(2, model.CurrentPage);
+        Assert.Equal(3, model.TotalPages);
+        Assert.Equal(25, model.TotalItems);
+        Assert.Equal(10, model.PageSize);
+        Assert.Equal(10, model.Recipes.Count());
+        Assert.Equal(11, model.Recipes.First().Id);
+        Assert.Equal(20, model.Recipes.Last().Id);
+    }
+
+    [Fact]
     public async Task Details_WhenRecipeHasIngredients_CalculatesNutritionFromIngredients()
     {
         var recipe = new Recipe
@@ -179,10 +215,15 @@ public class RecipeControllerTests
 
     private static RecipeController CreateController(
         Mock<IRecipeService> recipeServiceMock,
-        Mock<INutritionService>? nutritionServiceMock = null)
+        Mock<INutritionService>? nutritionServiceMock = null,
+        int pageSize = 12)
     {
         var settings = Options.Create(new PantryChefSettings
         {
+            Pagination = new PaginationSettings
+            {
+                DefaultPageSize = pageSize
+            },
             RecipeFilter = new RecipeFilterSettings
             {
                 AllCategoryLabel = "Всі страви",
