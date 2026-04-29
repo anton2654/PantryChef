@@ -30,6 +30,12 @@
                         <li class="nav-item">
                             <a class="nav-link text-dark fw-bold" asp-area="" asp-controller="Recipe" asp-action="Index">Страви</a>
                         </li>
+                        @if (User.Identity is not null && User.Identity.IsAuthenticated)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark fw-bold" asp-area="" asp-controller="Recipe" asp-action="Planner">Генератор меню</a>
+                            </li>
+                        }
                         <li class="nav-item">
                             <a class="nav-link text-dark fw-bold" asp-area="" asp-controller="Profile" asp-action="Index">Профіль</a>
                         </li>

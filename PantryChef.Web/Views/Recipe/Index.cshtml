@@ -1,13 +1,20 @@
 ﻿@model PantryChef.Web.Models.RecipeIndexViewModel
 
 @{
-    ViewData["Title"] = "Меню страв";
+    var isAuthenticated = User.Identity?.IsAuthenticated ?? false;
+    ViewData["Title"] = isAuthenticated ? "Мої страви" : "Каталог страв";
 }
 
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-0">Меню страв</h2>
-        <a asp-action="Create" class="btn btn-success">Додати страву</a>
+        <h2 class="mb-0">@ViewData["Title"]</h2>
+        <div class="d-flex gap-2">
+            @if (User.Identity?.IsAuthenticated ?? false)
+            {
+                <a asp-action="Planner" class="btn btn-outline-primary">Генератор меню</a>
+            }
+            <a asp-action="Create" class="btn btn-success">Додати страву</a>
+        </div>
     </div>
 
     <form method="get" asp-action="Filter" class="mb-4 d-flex align-items-center gap-3">
@@ -58,10 +65,13 @@
                             
                             <div class="mt-auto">
                                 <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-primary w-100" style="border-radius: 8px;">Деталі</a>
-                                <div class="d-flex gap-2 mt-2">
-                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-secondary w-50" style="border-radius: 8px;">Редагувати</a>
-                                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-outline-danger w-50" style="border-radius: 8px;">Видалити</a>
-                                </div>
+                                @if (isAuthenticated)
+                                {
+                                    <div class="d-flex gap-2 mt-2">
+                                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-secondary w-50" style="border-radius: 8px;">Редагувати</a>
+                                        <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-outline-danger w-50" style="border-radius: 8px;">Видалити</a>
+                                    </div>
+                                }
                             </div>
                         </div>
                     </div>

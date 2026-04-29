@@ -80,6 +80,9 @@ namespace PantryChef.Web
                 builder.Services.AddScoped<PantryChef.Data.Interfaces.IUserIngredientRepository, PantryChef.Data.Repositories.UserIngredientRepository>();
                 builder.Services.AddScoped<PantryChef.Data.Interfaces.IIngredientRepository, PantryChef.Data.Repositories.IngredientRepository>();
                 builder.Services.AddScoped<PantryChef.Data.Interfaces.IUserRepository, PantryChef.Data.Repositories.UserRepository>();
+                builder.Services.AddScoped<PantryChef.Data.Interfaces.IUserRecipeRepository, PantryChef.Data.Repositories.UserRecipeRepository>();
+                builder.Services.AddScoped<PantryChef.Data.Interfaces.IShoppingListRepository, PantryChef.Data.Repositories.ShoppingListRepository>();
+                builder.Services.AddScoped<PantryChef.Data.Interfaces.IUserNutritionLogRepository, PantryChef.Data.Repositories.UserNutritionLogRepository>();
                 builder.Services.AddScoped<PantryChef.Business.Interfaces.IInventoryService, PantryChef.Business.Services.InventoryService>();
 
              

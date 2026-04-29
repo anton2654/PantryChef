@@ -200,7 +200,7 @@ public class RecipeControllerTests
             .Setup(service => service.CalculateNutrition(recipe))
             .Returns((190.4, 9.0, 17.2, 0.9));
 
-        var sut = CreateController(recipeServiceMock, nutritionServiceMock);
+        var sut = CreateController(recipeServiceMock, nutritionServiceMock: nutritionServiceMock);
 
         var result = await sut.Details(recipe.Id);
 
@@ -215,9 +215,12 @@ public class RecipeControllerTests
 
     private static RecipeController CreateController(
         Mock<IRecipeService> recipeServiceMock,
+        Mock<IInventoryService>? inventoryServiceMock = null,
         Mock<INutritionService>? nutritionServiceMock = null,
         int pageSize = 12)
     {
+        inventoryServiceMock ??= new Mock<IInventoryService>();
+
         var settings = Options.Create(new PantryChefSettings
         {
             Pagination = new PaginationSettings
@@ -233,6 +236,7 @@ public class RecipeControllerTests
 
         var controller = new RecipeController(
             recipeServiceMock.Object,
+            inventoryServiceMock.Object,
             nutritionServiceMock?.Object ?? Mock.Of<INutritionService>(),
             settings)
         {

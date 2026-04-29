@@ -19,10 +19,16 @@ namespace PantryChef.Business.Interfaces
 
         Task<Result> EditRecipeAsync(RecipeEditModel model);
 
-        Task<Result> DeleteRecipeAsync(int recipeId);
+        Task<Result> RemoveRecipeForUserAsync(int userId, int recipeId);
 
         Task<Result<RecipeEditModel>> GetRecipeForEditAsync(int recipeId);
 
         Task<Result<RecipeDeleteModel>> GetRecipeForDeleteAsync(int recipeId);
+
+        Task<Result<IReadOnlyList<Recipe>>> GetUserRecipesAsync(int userId, string category = null);
+
+        Task<Result<IReadOnlyList<RecipeMatchResult>>> GetFullMatchRecipesAsync(int userId);
+
+        Task<Result<IReadOnlyList<RecipeMatchResult>>> GetPartialMatchRecipesAsync(int userId);
     }
 }

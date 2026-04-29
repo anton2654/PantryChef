@@ -209,7 +209,7 @@ public class RecipeServiceTests
     }
 
     [Fact]
-    public async Task DeleteRecipeAsync_WhenRecipeExists_ShouldDeleteRecipe()
+    public async Task RemoveRecipeForUserAsync_WhenRecipeExists_CreatesHiddenLink()
     {
         // Arrange
         var existingRecipe = new Recipe
@@ -226,20 +226,67 @@ public class RecipeServiceTests
             .Setup(repository => repository.GetRecipeByIdAsync(9))
             .ReturnsAsync(existingRecipe);
 
-        var sut = CreateService(recipeRepositoryMock);
+        var userRecipeRepoMock = new Mock<IUserRecipeRepository>();
+        userRecipeRepoMock
+            .Setup(repository => repository.GetAsync(1, 9))
+            .ReturnsAsync((UserRecipe)null!);
+
+        var sut = CreateService(recipeRepositoryMock, userRecipeRepoMock: userRecipeRepoMock);
 
         // Act
-        var result = await sut.DeleteRecipeAsync(9);
+        var result = await sut.RemoveRecipeForUserAsync(1, 9);
 
         // Assert
         Assert.True(result.IsSuccess);
-
-        recipeRepositoryMock.Verify(repository => repository.DeleteRecipe(existingRecipe), Times.Once);
-        recipeRepositoryMock.Verify(repository => repository.SaveChangesAsync(), Times.Once);
+        userRecipeRepoMock.Verify(repository => repository.AddAsync(It.Is<UserRecipe>(link =>
+            link.UserId == 1 && link.RecipeId == 9 && link.IsSaved == false)), Times.Once);
+        userRecipeRepoMock.Verify(repository => repository.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]
-    public async Task DeleteRecipeAsync_WhenRecipeDoesNotExist_ShouldReturnFailure()
+    public async Task RemoveRecipeForUserAsync_WhenLinkExists_UpdatesHiddenFlag()
+    {
+        // Arrange
+        var existingRecipe = new Recipe
+        {
+            Id = 12,
+            Name = "Суп",
+            Description = "desc",
+            Category = "Перші страви",
+            Photo = "soup.jpg"
+        };
+
+        var link = new UserRecipe
+        {
+            UserId = 1,
+            RecipeId = 12,
+            IsSaved = true
+        };
+
+        var recipeRepositoryMock = new Mock<IRecipeRepository>();
+        recipeRepositoryMock
+            .Setup(repository => repository.GetRecipeByIdAsync(12))
+            .ReturnsAsync(existingRecipe);
+
+        var userRecipeRepoMock = new Mock<IUserRecipeRepository>();
+        userRecipeRepoMock
+            .Setup(repository => repository.GetAsync(1, 12))
+            .ReturnsAsync(link);
+
+        var sut = CreateService(recipeRepositoryMock, userRecipeRepoMock: userRecipeRepoMock);
+
+        // Act
+        var result = await sut.RemoveRecipeForUserAsync(1, 12);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.False(link.IsSaved);
+        userRecipeRepoMock.Verify(repository => repository.Update(link), Times.Once);
+        userRecipeRepoMock.Verify(repository => repository.SaveChangesAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task RemoveRecipeForUserAsync_WhenRecipeMissing_ReturnsFailure()
     {
         // Arrange
         var recipeRepositoryMock = new Mock<IRecipeRepository>();
@@ -247,36 +294,17 @@ public class RecipeServiceTests
             .Setup(repository => repository.GetRecipeByIdAsync(301))
             .ReturnsAsync((Recipe)null!);
 
-        var sut = CreateService(recipeRepositoryMock);
+        var userRecipeRepoMock = new Mock<IUserRecipeRepository>();
+        var sut = CreateService(recipeRepositoryMock, userRecipeRepoMock: userRecipeRepoMock);
 
         // Act
-        var result = await sut.DeleteRecipeAsync(301);
+        var result = await sut.RemoveRecipeForUserAsync(1, 301);
 
         // Assert
         Assert.False(result.IsSuccess);
         Assert.Equal("Страву з ID 301 не знайдено.", result.ErrorMessage);
-
-        recipeRepositoryMock.Verify(repository => repository.DeleteRecipe(It.IsAny<Recipe>()), Times.Never);
-        recipeRepositoryMock.Verify(repository => repository.SaveChangesAsync(), Times.Never);
-    }
-
-    [Fact]
-    public async Task DeleteRecipeAsync_WhenRecipeIdIsInvalid_ShouldReturnFailure()
-    {
-        // Arrange
-        var recipeRepositoryMock = new Mock<IRecipeRepository>();
-        var sut = CreateService(recipeRepositoryMock);
-
-        // Act
-        var result = await sut.DeleteRecipeAsync(0);
-
-        // Assert
-        Assert.False(result.IsSuccess);
-        Assert.Equal("Некоректний ідентифікатор страви.", result.ErrorMessage);
-
-        recipeRepositoryMock.Verify(repository => repository.GetRecipeByIdAsync(It.IsAny<int>()), Times.Never);
-        recipeRepositoryMock.Verify(repository => repository.DeleteRecipe(It.IsAny<Recipe>()), Times.Never);
-        recipeRepositoryMock.Verify(repository => repository.SaveChangesAsync(), Times.Never);
+        userRecipeRepoMock.Verify(repository => repository.AddAsync(It.IsAny<UserRecipe>()), Times.Never);
+        userRecipeRepoMock.Verify(repository => repository.SaveChangesAsync(), Times.Never);
     }
 
     [Fact]
@@ -298,8 +326,164 @@ public class RecipeServiceTests
         recipeRepositoryMock.Verify(repository => repository.GetAvailableCategoriesAsync(), Times.Once);
     }
 
-    private static RecipeService CreateService(Mock<IRecipeRepository> recipeRepositoryMock, IMemoryCache? cache = null)
+    [Fact]
+    public async Task GetFullMatchRecipesAsync_WhenInventoryHasAllIngredients_ReturnsOnlyFullMatches()
     {
+        // Arrange
+        var recipes = new List<Recipe>
+        {
+            new()
+            {
+                Id = 1,
+                Name = "Омлет",
+                Description = "desc",
+                Photo = "img.jpg",
+                Category = "Сніданки",
+                RecipeIngredients =
+                [
+                    new RecipeIngredient
+                    {
+                        RecipeId = 1,
+                        IngredientId = 10,
+                        Quantity = 100,
+                        Ingredient = new Ingredient
+                        {
+                            Id = 10,
+                            Name = "Яйце",
+                            Category = "Молочні",
+                            Photo = "egg.jpg"
+                        }
+                    }
+                ]
+            },
+            new()
+            {
+                Id = 2,
+                Name = "Салат",
+                Description = "desc",
+                Photo = "img.jpg",
+                Category = "Обіди",
+                RecipeIngredients =
+                [
+                    new RecipeIngredient
+                    {
+                        RecipeId = 2,
+                        IngredientId = 11,
+                        Quantity = 200,
+                        Ingredient = new Ingredient
+                        {
+                            Id = 11,
+                            Name = "Помідор",
+                            Category = "Овочі",
+                            Photo = "tomato.jpg"
+                        }
+                    }
+                ]
+            }
+        };
+
+        var inventory = new List<UserIngredient>
+        {
+            new()
+            {
+                UserId = 1,
+                IngredientId = 10,
+                Quantity = 150,
+                Ingredient = new Ingredient
+                {
+                    Id = 10,
+                    Name = "Яйце",
+                    Category = "Молочні",
+                    Photo = "egg.jpg"
+                }
+            }
+        };
+
+        var recipeRepositoryMock = new Mock<IRecipeRepository>();
+        recipeRepositoryMock
+            .Setup(repository => repository.GetAllRecipesWithIngredientsAsync())
+            .ReturnsAsync(recipes);
+
+        var userIngredientRepoMock = new Mock<IUserIngredientRepository>();
+        userIngredientRepoMock
+            .Setup(repository => repository.GetUserInventoryAsync(1))
+            .ReturnsAsync(inventory);
+
+        var sut = CreateService(recipeRepositoryMock, userIngredientRepoMock);
+
+        // Act
+        var result = await sut.GetFullMatchRecipesAsync(1);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Single(result.Data);
+        Assert.Equal(1, result.Data[0].Recipe.Id);
+    }
+
+    [Fact]
+    public async Task GetPartialMatchRecipesAsync_WhenIngredientAbsent_ReturnsMissingDeficit()
+    {
+        // Arrange
+        var recipes = new List<Recipe>
+        {
+            new()
+            {
+                Id = 3,
+                Name = "Паста",
+                Description = "desc",
+                Photo = "img.jpg",
+                Category = "Обіди",
+                RecipeIngredients =
+                [
+                    new RecipeIngredient
+                    {
+                        RecipeId = 3,
+                        IngredientId = 12,
+                        Quantity = 120,
+                        Ingredient = new Ingredient
+                        {
+                            Id = 12,
+                            Name = "Макарони",
+                            Category = "Крупи",
+                            Photo = "pasta.jpg"
+                        }
+                    }
+                ]
+            }
+        };
+
+        var recipeRepositoryMock = new Mock<IRecipeRepository>();
+        recipeRepositoryMock
+            .Setup(repository => repository.GetAllRecipesWithIngredientsAsync())
+            .ReturnsAsync(recipes);
+
+        var userIngredientRepoMock = new Mock<IUserIngredientRepository>();
+        userIngredientRepoMock
+            .Setup(repository => repository.GetUserInventoryAsync(1))
+            .ReturnsAsync(new List<UserIngredient>());
+
+        var sut = CreateService(recipeRepositoryMock, userIngredientRepoMock);
+
+        // Act
+        var result = await sut.GetPartialMatchRecipesAsync(1);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Single(result.Data);
+        var deficit = Assert.Single(result.Data[0].MissingIngredients);
+        Assert.Equal(0, deficit.AvailableQuantity);
+        Assert.Equal(120, deficit.MissingQuantity);
+    }
+
+    private static RecipeService CreateService(
+        Mock<IRecipeRepository> recipeRepositoryMock,
+        Mock<IUserIngredientRepository>? userIngredientRepoMock = null,
+        Mock<IUserRecipeRepository>? userRecipeRepoMock = null,
+        IMemoryCache? cache = null)
+    {
+        userIngredientRepoMock ??= new Mock<IUserIngredientRepository>();
+        userRecipeRepoMock ??= new Mock<IUserRecipeRepository>();
+
         var settings = Options.Create(new PantryChefSettings
         {
             Caching = new CachingSettings
@@ -310,6 +494,8 @@ public class RecipeServiceTests
 
         return new RecipeService(
             recipeRepositoryMock.Object,
+            userIngredientRepoMock.Object,
+            userRecipeRepoMock.Object,
             Mock.Of<ILogger<RecipeService>>(),
             cache ?? new MemoryCache(new MemoryCacheOptions()),
             settings);

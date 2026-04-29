@@ -36,17 +36,23 @@ namespace PantryChef.Business.Services
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private readonly IRecipeRepository _recipeRepo;
+        private readonly IUserIngredientRepository _userIngredientRepo;
+        private readonly IUserRecipeRepository _userRecipeRepo;
         private readonly ILogger<RecipeService> _logger;
         private readonly IMemoryCache _cache;
         private readonly PantryChefSettings _settings;
 
         public RecipeService(
             IRecipeRepository recipeRepo,
+            IUserIngredientRepository userIngredientRepo,
+            IUserRecipeRepository userRecipeRepo,
             ILogger<RecipeService> logger,
             IMemoryCache cache,
             IOptions<PantryChefSettings> options)
         {
             _recipeRepo = recipeRepo;
+            _userIngredientRepo = userIngredientRepo;
+            _userRecipeRepo = userRecipeRepo;
             _logger = logger;
             _cache = cache;
             _settings = options?.Value ?? new PantryChefSettings();
@@ -224,8 +230,15 @@ namespace PantryChef.Business.Services
             }
         }
 
-        public async Task<Result> DeleteRecipeAsync(int recipeId)
+        public async Task<Result> RemoveRecipeForUserAsync(int userId, int recipeId)
         {
+            if (userId <= 0)
+            {
+                const string error = "Некоректний ідентифікатор користувача.";
+                _logger.LogError(error);
+                return Result.Failure(error);
+            }
+
             if (recipeId <= 0)
             {
                 const string error = "Некоректний ідентифікатор страви.";
@@ -233,29 +246,38 @@ namespace PantryChef.Business.Services
                 return Result.Failure(error);
             }
 
-            try
-            {
-                var recipe = await _recipeRepo.GetRecipeByIdAsync(recipeId);
+            var recipe = await _recipeRepo.GetRecipeByIdAsync(recipeId);
 
-                if (recipe == null)
+            if (recipe == null)
+            {
+                var error = $"Страву з ID {recipeId} не знайдено.";
+                _logger.LogError(error);
+                return Result.Failure(error);
+            }
+
+            var link = await _userRecipeRepo.GetAsync(userId, recipeId);
+
+            if (link == null)
+            {
+                await _userRecipeRepo.AddAsync(new UserRecipe
                 {
-                    var error = $"Страву з ID {recipeId} не знайдено.";
-                    _logger.LogError(error);
-                    return Result.Failure(error);
-                }
-
-                _recipeRepo.DeleteRecipe(recipe);
-                await _recipeRepo.SaveChangesAsync();
-                InvalidateAvailableCategoriesCache();
-
-                _logger.LogInformation("Користувач видалив страву {RecipeName} (ID: {RecipeId})", recipe.Name, recipeId);
-                return Result.Success();
+                    UserId = userId,
+                    RecipeId = recipeId,
+                    IsSaved = false,
+                    UpdatedAt = DateTime.UtcNow
+                });
             }
-            catch (Exception exception)
+            else if (link.IsSaved)
             {
-                _logger.LogError(exception, "Помилка під час видалення страви {RecipeId}", recipeId);
-                return Result.Failure("Не вдалося видалити страву. Спробуйте пізніше.");
+                link.IsSaved = false;
+                link.UpdatedAt = DateTime.UtcNow;
+                _userRecipeRepo.Update(link);
             }
+
+            await _userRecipeRepo.SaveChangesAsync();
+
+            _logger.LogInformation("Користувач {UserId} прибрав страву {RecipeId} зі списку", userId, recipeId);
+            return Result.Success();
         }
 
         public async Task<Result<RecipeEditModel>> GetRecipeForEditAsync(int recipeId)
@@ -330,6 +352,135 @@ namespace PantryChef.Business.Services
                 _logger.LogError(exception, "Помилка під час отримання страви {RecipeId} для видалення", recipeId);
                 return Result<RecipeDeleteModel>.Failure("Не вдалося завантажити страву для видалення.");
             }
+        }
+
+        public async Task<Result<IReadOnlyList<Recipe>>> GetUserRecipesAsync(int userId, string category = null)
+        {
+            if (userId <= 0)
+            {
+                const string error = "Некоректний ідентифікатор користувача.";
+                _logger.LogError(error);
+                return Result<IReadOnlyList<Recipe>>.Failure(error);
+            }
+
+            var hiddenRecipeIds = await _userRecipeRepo.GetHiddenRecipeIdsAsync(userId);
+
+            var recipes = string.IsNullOrWhiteSpace(category)
+                ? await _recipeRepo.GetAllRecipesWithIngredientsAsync()
+                : await _recipeRepo.GetRecipesByCategoryAsync(category);
+
+            var filtered = (recipes ?? Enumerable.Empty<Recipe>())
+                .Where(recipe => !hiddenRecipeIds.Contains(recipe.Id))
+                .ToList();
+
+            await ResolveAndPersistPhotoLinksAsync(filtered);
+            return filtered;
+        }
+
+        public async Task<Result<IReadOnlyList<RecipeMatchResult>>> GetFullMatchRecipesAsync(int userId)
+        {
+            if (userId <= 0)
+            {
+                _logger.LogWarning("Некоректний ідентифікатор користувача для генерації повного меню: {UserId}", userId);
+                return new Error("Некоректний ідентифікатор користувача.");
+            }
+
+            _logger.LogInformation("Генерація повного меню для користувача {UserId}", userId);
+
+            var recipes = (await _recipeRepo.GetAllRecipesWithIngredientsAsync()).ToList();
+            var inventory = (await _userIngredientRepo.GetUserInventoryAsync(userId)).ToList();
+            var inventoryMap = inventory.ToDictionary(item => item.IngredientId, item => item.Quantity);
+
+            var matches = new List<RecipeMatchResult>();
+
+            foreach (var recipe in recipes)
+            {
+                var deficits = BuildIngredientDeficits(recipe, inventoryMap);
+                if (deficits.Count == 0)
+                {
+                    matches.Add(new RecipeMatchResult
+                    {
+                        Recipe = recipe,
+                        MissingIngredients = deficits
+                    });
+                }
+            }
+
+            _logger.LogInformation("Знайдено {MatchCount} повних збігів для користувача {UserId}", matches.Count, userId);
+            return matches;
+        }
+
+        public async Task<Result<IReadOnlyList<RecipeMatchResult>>> GetPartialMatchRecipesAsync(int userId)
+        {
+            if (userId <= 0)
+            {
+                _logger.LogWarning("Некоректний ідентифікатор користувача для генерації часткового меню: {UserId}", userId);
+                return new Error("Некоректний ідентифікатор користувача.");
+            }
+
+            _logger.LogInformation("Генерація часткового меню для користувача {UserId}", userId);
+
+            var recipes = (await _recipeRepo.GetAllRecipesWithIngredientsAsync()).ToList();
+            var inventory = (await _userIngredientRepo.GetUserInventoryAsync(userId)).ToList();
+            var inventoryMap = inventory.ToDictionary(item => item.IngredientId, item => item.Quantity);
+
+            var matches = new List<RecipeMatchResult>();
+
+            foreach (var recipe in recipes)
+            {
+                var deficits = BuildIngredientDeficits(recipe, inventoryMap);
+                if (deficits.Count > 0)
+                {
+                    matches.Add(new RecipeMatchResult
+                    {
+                        Recipe = recipe,
+                        MissingIngredients = deficits
+                    });
+                }
+            }
+
+            _logger.LogInformation("Знайдено {MatchCount} часткових збігів для користувача {UserId}", matches.Count, userId);
+            return matches;
+        }
+
+        private static List<IngredientDeficit> BuildIngredientDeficits(
+            Recipe recipe,
+            IReadOnlyDictionary<int, double> inventoryMap)
+        {
+            var deficits = new List<IngredientDeficit>();
+
+            if (recipe?.RecipeIngredients == null)
+            {
+                return deficits;
+            }
+
+            foreach (var ingredient in recipe.RecipeIngredients)
+            {
+                var required = ingredient.Quantity;
+                if (required <= 0)
+                {
+                    continue;
+                }
+
+                var available = inventoryMap.TryGetValue(ingredient.IngredientId, out var availableQuantity)
+                    ? availableQuantity
+                    : 0;
+
+                var missing = required - available;
+                if (missing > 0)
+                {
+                    deficits.Add(new IngredientDeficit
+                    {
+                        IngredientId = ingredient.IngredientId,
+                        IngredientName = ingredient.Ingredient?.Name ?? string.Empty,
+                        RequiredQuantity = required,
+                        AvailableQuantity = available,
+                        MissingQuantity = missing
+                    });
+                }
+            }
+
+            return deficits;
         }
 
         private static string ValidateRecipeData(

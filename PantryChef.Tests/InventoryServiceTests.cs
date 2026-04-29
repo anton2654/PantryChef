@@ -6,6 +6,7 @@ using PantryChef.Business.Models;
 using PantryChef.Business.Services;
 using PantryChef.Data.Entities;
 using PantryChef.Data.Interfaces;
+using System;
 
 namespace PantryChef.Tests;
 
@@ -151,7 +152,7 @@ public class InventoryServiceTests
             });
 
         using var cache = new MemoryCache(new MemoryCacheOptions());
-        var service = CreateService(inventoryRepoMock, ingredientRepoMock, loggerMock, cache);
+        var service = CreateService(inventoryRepoMock, ingredientRepoMock, loggerMock, cache: cache);
 
         var firstResult = (await service.GetAvailableIngredientsAsync()).ToList();
         var secondResult = (await service.GetAvailableIngredientsAsync()).ToList();
@@ -162,12 +163,232 @@ public class InventoryServiceTests
         ingredientRepoMock.Verify(repo => repo.GetAllAsync(), Times.Once);
     }
 
+    [Fact]
+    public async Task CookRecipeAsync_WhenIngredientsSufficient_UpdatesInventoryAndLogsNutrition()
+    {
+        // Arrange
+        var inventoryRepoMock = new Mock<IUserIngredientRepository>();
+        var ingredientRepoMock = new Mock<IIngredientRepository>();
+        var recipeRepoMock = new Mock<IRecipeRepository>();
+        var shoppingListRepoMock = new Mock<IShoppingListRepository>();
+        var nutritionServiceMock = new Mock<INutritionService>();
+        var loggerMock = new Mock<ILogger<InventoryService>>();
+
+        var recipe = new Recipe
+        {
+            Id = 5,
+            Name = "Омлет",
+            Description = "desc",
+            Photo = "img.jpg",
+            Category = "Сніданки",
+            RecipeIngredients =
+            [
+                new RecipeIngredient
+                {
+                    RecipeId = 5,
+                    IngredientId = 10,
+                    Quantity = 100,
+                    Ingredient = new Ingredient
+                    {
+                        Id = 10,
+                        Name = "Яйце",
+                        Category = "Молочні",
+                        Photo = "egg.jpg"
+                    }
+                }
+            ]
+        };
+
+        var inventoryItem = new UserIngredient
+        {
+            UserId = 1,
+            IngredientId = 10,
+            Quantity = 150,
+            Ingredient = new Ingredient
+            {
+                Id = 10,
+                Name = "Яйце",
+                Category = "Молочні",
+                Photo = "egg.jpg"
+            }
+        };
+
+        recipeRepoMock
+            .Setup(repo => repo.GetRecipeWithIngredientsByIdAsync(5))
+            .ReturnsAsync(recipe);
+
+        inventoryRepoMock
+            .Setup(repo => repo.GetUserInventoryAsync(1))
+            .ReturnsAsync(new List<UserIngredient> { inventoryItem });
+
+        nutritionServiceMock
+            .Setup(service => service.CalculateNutrition(recipe))
+            .Returns((200, 10, 5, 0));
+
+        nutritionServiceMock
+            .Setup(service => service.AddConsumedNutritionAsync(1, 200, 10, 5, 0, It.IsAny<DateTime?>()))
+            .ReturnsAsync(Result.Success());
+
+        var service = CreateService(
+            inventoryRepoMock,
+            ingredientRepoMock,
+            loggerMock,
+            recipeRepoMock,
+            shoppingListRepoMock,
+            nutritionServiceMock);
+
+        // Act
+        var result = await service.CookRecipeAsync(1, 5);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(50, inventoryItem.Quantity);
+        inventoryRepoMock.Verify(repo => repo.Update(inventoryItem), Times.Once);
+        inventoryRepoMock.Verify(repo => repo.SaveChangesAsync(), Times.Once);
+        nutritionServiceMock.Verify(service => service.AddConsumedNutritionAsync(1, 200, 10, 5, 0, It.IsAny<DateTime?>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task CookRecipeAsync_WhenIngredientMissing_ReturnsFailure()
+    {
+        // Arrange
+        var inventoryRepoMock = new Mock<IUserIngredientRepository>();
+        var ingredientRepoMock = new Mock<IIngredientRepository>();
+        var recipeRepoMock = new Mock<IRecipeRepository>();
+        var shoppingListRepoMock = new Mock<IShoppingListRepository>();
+        var nutritionServiceMock = new Mock<INutritionService>();
+        var loggerMock = new Mock<ILogger<InventoryService>>();
+
+        var recipe = new Recipe
+        {
+            Id = 6,
+            Name = "Салат",
+            Description = "desc",
+            Photo = "img.jpg",
+            Category = "Обіди",
+            RecipeIngredients =
+            [
+                new RecipeIngredient
+                {
+                    RecipeId = 6,
+                    IngredientId = 20,
+                    Quantity = 50,
+                    Ingredient = new Ingredient
+                    {
+                        Id = 20,
+                        Name = "Огірок",
+                        Category = "Овочі",
+                        Photo = "cucumber.jpg"
+                    }
+                }
+            ]
+        };
+
+        recipeRepoMock
+            .Setup(repo => repo.GetRecipeWithIngredientsByIdAsync(6))
+            .ReturnsAsync(recipe);
+
+        inventoryRepoMock
+            .Setup(repo => repo.GetUserInventoryAsync(1))
+            .ReturnsAsync(new List<UserIngredient>());
+
+        var service = CreateService(
+            inventoryRepoMock,
+            ingredientRepoMock,
+            loggerMock,
+            recipeRepoMock,
+            shoppingListRepoMock,
+            nutritionServiceMock);
+
+        // Act
+        var result = await service.CookRecipeAsync(1, 6);
+
+        // Assert
+        Assert.False(result.IsSuccess);
+        Assert.Contains("Недостатньо інгредієнта", result.ErrorMessage);
+        inventoryRepoMock.Verify(repo => repo.Update(It.IsAny<UserIngredient>()), Times.Never);
+        nutritionServiceMock.Verify(service => service.AddConsumedNutritionAsync(It.IsAny<int>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<DateTime?>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AddMissingIngredientsToShoppingListAsync_WhenIngredientAbsent_AddsMissingQuantity()
+    {
+        // Arrange
+        var inventoryRepoMock = new Mock<IUserIngredientRepository>();
+        var ingredientRepoMock = new Mock<IIngredientRepository>();
+        var recipeRepoMock = new Mock<IRecipeRepository>();
+        var shoppingListRepoMock = new Mock<IShoppingListRepository>();
+        var nutritionServiceMock = new Mock<INutritionService>();
+        var loggerMock = new Mock<ILogger<InventoryService>>();
+
+        var recipe = new Recipe
+        {
+            Id = 7,
+            Name = "Суп",
+            Description = "desc",
+            Photo = "img.jpg",
+            Category = "Перші страви",
+            RecipeIngredients =
+            [
+                new RecipeIngredient
+                {
+                    RecipeId = 7,
+                    IngredientId = 30,
+                    Quantity = 120,
+                    Ingredient = new Ingredient
+                    {
+                        Id = 30,
+                        Name = "Морква",
+                        Category = "Овочі",
+                        Photo = "carrot.jpg"
+                    }
+                }
+            ]
+        };
+
+        recipeRepoMock
+            .Setup(repo => repo.GetRecipeWithIngredientsByIdAsync(7))
+            .ReturnsAsync(recipe);
+
+        inventoryRepoMock
+            .Setup(repo => repo.GetUserInventoryAsync(1))
+            .ReturnsAsync(new List<UserIngredient>());
+
+        shoppingListRepoMock
+            .Setup(repo => repo.GetItemAsync(1, 30))
+            .ReturnsAsync((ShoppingListItem)null!);
+
+        var service = CreateService(
+            inventoryRepoMock,
+            ingredientRepoMock,
+            loggerMock,
+            recipeRepoMock,
+            shoppingListRepoMock,
+            nutritionServiceMock);
+
+        // Act
+        var result = await service.AddMissingIngredientsToShoppingListAsync(1, 7);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        shoppingListRepoMock.Verify(repo => repo.AddAsync(It.Is<ShoppingListItem>(item =>
+            item.UserId == 1 && item.IngredientId == 30 && item.Quantity == 120)), Times.Once);
+        shoppingListRepoMock.Verify(repo => repo.SaveChangesAsync(), Times.Once);
+    }
+
     private static InventoryService CreateService(
         Mock<IUserIngredientRepository> inventoryRepoMock,
         Mock<IIngredientRepository> ingredientRepoMock,
         Mock<ILogger<InventoryService>> loggerMock,
+        Mock<IRecipeRepository>? recipeRepoMock = null,
+        Mock<IShoppingListRepository>? shoppingListRepoMock = null,
+        Mock<INutritionService>? nutritionServiceMock = null,
         IMemoryCache? cache = null)
     {
+        recipeRepoMock ??= new Mock<IRecipeRepository>();
+        shoppingListRepoMock ??= new Mock<IShoppingListRepository>();
+        nutritionServiceMock ??= new Mock<INutritionService>();
+
         var settings = Options.Create(new PantryChefSettings
         {
             Inventory = new InventorySettings
@@ -184,6 +405,9 @@ public class InventoryServiceTests
         return new InventoryService(
             inventoryRepoMock.Object,
             ingredientRepoMock.Object,
+            recipeRepoMock.Object,
+            shoppingListRepoMock.Object,
+            nutritionServiceMock.Object,
             loggerMock.Object,
             cache ?? new MemoryCache(new MemoryCacheOptions()),
             settings);

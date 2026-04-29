@@ -62,7 +62,11 @@ public class NutritionServiceTests
             .Setup(repository => repository.GetRecipeWithIngredientsByIdAsync(recipe.Id))
             .ReturnsAsync(recipe);
 
-        var sut = new NutritionService(recipeRepositoryMock.Object, Mock.Of<ILogger<NutritionService>>());
+        var nutritionLogRepoMock = new Mock<IUserNutritionLogRepository>();
+        var sut = new NutritionService(
+            recipeRepositoryMock.Object,
+            nutritionLogRepoMock.Object,
+            Mock.Of<ILogger<NutritionService>>());
 
         var result = await sut.UpdateRecipeNutritionAsync(recipe.Id);
 
@@ -84,7 +88,11 @@ public class NutritionServiceTests
             .Setup(repository => repository.GetRecipeWithIngredientsByIdAsync(404))
             .ReturnsAsync((Recipe)null!);
 
-        var sut = new NutritionService(recipeRepositoryMock.Object, Mock.Of<ILogger<NutritionService>>());
+        var nutritionLogRepoMock = new Mock<IUserNutritionLogRepository>();
+        var sut = new NutritionService(
+            recipeRepositoryMock.Object,
+            nutritionLogRepoMock.Object,
+            Mock.Of<ILogger<NutritionService>>());
 
         var result = await sut.UpdateRecipeNutritionAsync(404);
 

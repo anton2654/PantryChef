@@ -18,6 +18,9 @@ namespace PantryChef.Business.Services
 
         private readonly IUserIngredientRepository _inventoryRepo;
         private readonly IIngredientRepository _ingredientRepo;
+        private readonly IRecipeRepository _recipeRepo;
+        private readonly IShoppingListRepository _shoppingListRepo;
+        private readonly INutritionService _nutritionService;
         private readonly ILogger<InventoryService> _logger;
         private readonly IMemoryCache _cache;
         private readonly PantryChefSettings _settings;
@@ -25,12 +28,18 @@ namespace PantryChef.Business.Services
         public InventoryService(
             IUserIngredientRepository inventoryRepo,
             IIngredientRepository ingredientRepo,
+            IRecipeRepository recipeRepo,
+            IShoppingListRepository shoppingListRepo,
+            INutritionService nutritionService,
             ILogger<InventoryService> logger,
             IMemoryCache cache,
             IOptions<PantryChefSettings> options)
         {
             _inventoryRepo = inventoryRepo;
             _ingredientRepo = ingredientRepo;
+            _recipeRepo = recipeRepo;
+            _shoppingListRepo = shoppingListRepo;
+            _nutritionService = nutritionService;
             _logger = logger;
             _cache = cache;
             _settings = options?.Value ?? new PantryChefSettings();
@@ -165,6 +174,204 @@ namespace PantryChef.Business.Services
             await _inventoryRepo.SaveChangesAsync();
 
             return Result.Success();
+        }
+
+        public async Task<Result> AddMissingIngredientsToShoppingListAsync(int userId, int recipeId)
+        {
+            if (userId <= 0)
+            {
+                _logger.LogWarning("Некоректний ідентифікатор користувача для списку покупок: {UserId}", userId);
+                return new Error("Некоректний ідентифікатор користувача.");
+            }
+
+            if (recipeId <= 0)
+            {
+                _logger.LogWarning("Некоректний ідентифікатор страви для списку покупок: {RecipeId}", recipeId);
+                return new Error("Некоректний ідентифікатор страви.");
+            }
+
+            _logger.LogInformation("Додавання відсутніх інгредієнтів у список покупок для користувача {UserId}, рецепт {RecipeId}", userId, recipeId);
+
+            var recipe = await _recipeRepo.GetRecipeWithIngredientsByIdAsync(recipeId);
+            if (recipe == null)
+            {
+                _logger.LogWarning("Страву {RecipeId} не знайдено для списку покупок", recipeId);
+                return Result.Failure($"Страву з ID {recipeId} не знайдено.");
+            }
+
+            var inventory = (await _inventoryRepo.GetUserInventoryAsync(userId)).ToList();
+            var inventoryMap = inventory.ToDictionary(item => item.IngredientId, item => item.Quantity);
+
+            var deficits = BuildIngredientDeficits(recipe, inventoryMap);
+            if (deficits.Count == 0)
+            {
+                _logger.LogInformation("У користувача {UserId} немає дефіциту для рецепта {RecipeId}", userId, recipeId);
+                return Result.Failure("Усі інгредієнти вже є у достатній кількості.");
+            }
+
+            foreach (var deficit in deficits)
+            {
+                if (deficit.MissingQuantity <= 0)
+                {
+                    continue;
+                }
+
+                var existingItem = await _shoppingListRepo.GetItemAsync(userId, deficit.IngredientId);
+                if (existingItem != null)
+                {
+                    existingItem.Quantity += deficit.MissingQuantity;
+                    _shoppingListRepo.Update(existingItem);
+                }
+                else
+                {
+                    await _shoppingListRepo.AddAsync(new ShoppingListItem
+                    {
+                        UserId = userId,
+                        IngredientId = deficit.IngredientId,
+                        Quantity = deficit.MissingQuantity,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+            }
+
+            await _shoppingListRepo.SaveChangesAsync();
+
+            _logger.LogInformation("Список покупок користувача {UserId} оновлено для рецепта {RecipeId}", userId, recipeId);
+            return Result.Success();
+        }
+
+        public async Task<Result> CookRecipeAsync(int userId, int recipeId)
+        {
+            if (userId <= 0)
+            {
+                _logger.LogWarning("Некоректний ідентифікатор користувача для приготування: {UserId}", userId);
+                return new Error("Некоректний ідентифікатор користувача.");
+            }
+
+            if (recipeId <= 0)
+            {
+                _logger.LogWarning("Некоректний ідентифікатор страви для приготування: {RecipeId}", recipeId);
+                return new Error("Некоректний ідентифікатор страви.");
+            }
+
+            _logger.LogInformation("Списання інгредієнтів для користувача {UserId}, рецепт {RecipeId}", userId, recipeId);
+
+            var recipe = await _recipeRepo.GetRecipeWithIngredientsByIdAsync(recipeId);
+            if (recipe == null)
+            {
+                _logger.LogWarning("Страву {RecipeId} не знайдено для приготування", recipeId);
+                return Result.Failure($"Страву з ID {recipeId} не знайдено.");
+            }
+
+            var inventory = (await _inventoryRepo.GetUserInventoryAsync(userId)).ToList();
+            var inventoryMap = inventory.ToDictionary(item => item.IngredientId, item => item);
+
+            foreach (var ingredient in recipe.RecipeIngredients)
+            {
+                if (ingredient.Quantity <= 0)
+                {
+                    _logger.LogWarning("Некоректна кількість інгредієнта у рецепті {RecipeId}", recipeId);
+                    return Result.Failure("Некоректна кількість інгредієнта у рецепті.");
+                }
+
+                if (!inventoryMap.TryGetValue(ingredient.IngredientId, out var userItem))
+                {
+                    _logger.LogWarning("Недостатньо інгредієнта {IngredientId} для рецепта {RecipeId}", ingredient.IngredientId, recipeId);
+                    return Result.Failure($"Недостатньо інгредієнта: {ingredient.Ingredient?.Name ?? "Невідомий"}.");
+                }
+
+                if (userItem.Quantity < ingredient.Quantity)
+                {
+                    _logger.LogWarning("Недостатньо інгредієнта {IngredientId} для рецепта {RecipeId}", ingredient.IngredientId, recipeId);
+                    return Result.Failure($"Недостатньо інгредієнта: {ingredient.Ingredient?.Name ?? "Невідомий"}.");
+                }
+            }
+
+            foreach (var ingredient in recipe.RecipeIngredients)
+            {
+                var userItem = inventoryMap[ingredient.IngredientId];
+                userItem.Quantity -= ingredient.Quantity;
+
+                if (userItem.Quantity <= 0)
+                {
+                    _inventoryRepo.Delete(userItem);
+                }
+                else
+                {
+                    _inventoryRepo.Update(userItem);
+                }
+            }
+
+            await _inventoryRepo.SaveChangesAsync();
+
+            var nutrition = _nutritionService.CalculateNutrition(recipe);
+            var nutritionResult = await _nutritionService.AddConsumedNutritionAsync(
+                userId,
+                nutrition.Calories,
+                nutrition.Proteins,
+                nutrition.Fats,
+                nutrition.Carbohydrates);
+
+            if (!nutritionResult.IsSuccess)
+            {
+                _logger.LogWarning("Не вдалося зберегти спожиту поживну цінність для користувача {UserId}: {Error}", userId, nutritionResult.ErrorMessage);
+                return Result.Failure(nutritionResult.ErrorMessage);
+            }
+
+            _logger.LogInformation("Інгредієнти успішно списано для користувача {UserId}, рецепт {RecipeId}", userId, recipeId);
+            return Result.Success();
+        }
+
+        public async Task<Result<IReadOnlyList<ShoppingListItem>>> GetShoppingListAsync(int userId)
+        {
+            if (userId <= 0)
+            {
+                _logger.LogWarning("Некоректний ідентифікатор користувача для перегляду списку покупок: {UserId}", userId);
+                return new Error("Некоректний ідентифікатор користувача.");
+            }
+
+            var items = (await _shoppingListRepo.GetByUserAsync(userId)).ToList();
+            return items;
+        }
+
+        private static List<IngredientDeficit> BuildIngredientDeficits(
+            Recipe recipe,
+            IReadOnlyDictionary<int, double> inventoryMap)
+        {
+            var deficits = new List<IngredientDeficit>();
+
+            if (recipe?.RecipeIngredients == null)
+            {
+                return deficits;
+            }
+
+            foreach (var ingredient in recipe.RecipeIngredients)
+            {
+                var required = ingredient.Quantity;
+                if (required <= 0)
+                {
+                    continue;
+                }
+
+                var available = inventoryMap.TryGetValue(ingredient.IngredientId, out var availableQuantity)
+                    ? availableQuantity
+                    : 0;
+
+                var missing = required - available;
+                if (missing > 0)
+                {
+                    deficits.Add(new IngredientDeficit
+                    {
+                        IngredientId = ingredient.IngredientId,
+                        IngredientName = ingredient.Ingredient?.Name ?? string.Empty,
+                        RequiredQuantity = required,
+                        AvailableQuantity = available,
+                        MissingQuantity = missing
+                    });
+                }
+            }
+
+            return deficits;
         }
     }
 }

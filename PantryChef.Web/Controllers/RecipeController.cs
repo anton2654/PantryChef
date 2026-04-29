@@ -16,15 +16,18 @@ namespace PantryChef.Web.Controllers
     public class RecipeController : BaseController
     {
         private readonly IRecipeService _recipeService;
+        private readonly IInventoryService _inventoryService;
         private readonly INutritionService _nutritionService;
         private readonly PantryChefSettings _settings;
 
         public RecipeController(
             IRecipeService recipeService,
+            IInventoryService inventoryService,
             INutritionService nutritionService,
             IOptions<PantryChefSettings> options)
         {
             _recipeService = recipeService;
+            _inventoryService = inventoryService;
             _nutritionService = nutritionService;
             _settings = options?.Value ?? new PantryChefSettings();
         }
@@ -36,11 +39,62 @@ namespace PantryChef.Web.Controllers
         }
 
         [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> Planner()
+        {
+            var fullMatchResult = await _recipeService.GetFullMatchRecipesAsync(CurrentUserId);
+            var partialMatchResult = await _recipeService.GetPartialMatchRecipesAsync(CurrentUserId);
+            var shoppingListResult = await _inventoryService.GetShoppingListAsync(CurrentUserId);
+
+            if (!fullMatchResult.IsSuccess)
+            {
+                SetErrorMessage(fullMatchResult.ErrorMessage);
+            }
+
+            if (!partialMatchResult.IsSuccess)
+            {
+                SetErrorMessage(partialMatchResult.ErrorMessage);
+            }
+
+            if (!shoppingListResult.IsSuccess)
+            {
+                SetErrorMessage(shoppingListResult.ErrorMessage);
+            }
+
+            var model = new RecipePlannerViewModel
+            {
+                FullMatches = fullMatchResult.IsSuccess ? fullMatchResult.Data : new List<RecipeMatchResult>(),
+                PartialMatches = partialMatchResult.IsSuccess ? partialMatchResult.Data : new List<RecipeMatchResult>(),
+                ShoppingList = shoppingListResult.IsSuccess ? shoppingListResult.Data : new List<ShoppingListItem>()
+            };
+
+            return View(model);
+        }
+
+        [HttpGet]
         public async Task<IActionResult> Filter(string category = null, int page = 1)
         {
-            var recipes = string.IsNullOrWhiteSpace(category)
-                ? await _recipeService.GetAllRecipesWithIngredientsAsync()
-                : await _recipeService.GetRecipesByCategoryAsync(category);
+            IEnumerable<Recipe> recipes;
+
+            if (User.Identity?.IsAuthenticated ?? false)
+            {
+                var userRecipesResult = await _recipeService.GetUserRecipesAsync(CurrentUserId, category);
+                if (!userRecipesResult.IsSuccess)
+                {
+                    SetErrorMessage(userRecipesResult.ErrorMessage);
+                    recipes = Enumerable.Empty<Recipe>();
+                }
+                else
+                {
+                    recipes = userRecipesResult.Data;
+                }
+            }
+            else
+            {
+                recipes = string.IsNullOrWhiteSpace(category)
+                    ? await _recipeService.GetAllRecipesWithIngredientsAsync()
+                    : await _recipeService.GetRecipesByCategoryAsync(category);
+            }
 
             var allRecipes = (recipes ?? Enumerable.Empty<Recipe>()).ToList();
             var pageSize = _settings.Pagination.DefaultPageSize > 0 ? _settings.Pagination.DefaultPageSize : 12;
@@ -253,7 +307,7 @@ namespace PantryChef.Web.Controllers
         [ActionName("Delete")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var result = await _recipeService.DeleteRecipeAsync(id);
+            var result = await _recipeService.RemoveRecipeForUserAsync(CurrentUserId, id);
 
             if (!result.IsSuccess)
             {
@@ -261,7 +315,7 @@ namespace PantryChef.Web.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            SetSuccessMessage("Страву успішно видалено.");
+            SetSuccessMessage("Страву прибрано з вашого списку.");
             return RedirectToAction(nameof(Index));
         }
 
@@ -304,6 +358,40 @@ namespace PantryChef.Web.Controllers
 
             SetSuccessMessage("КБЖВ для рецепта успішно перераховано.");
             return RedirectToAction(nameof(Details), new { id });
+        }
+
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddToShoppingList(int recipeId)
+        {
+            var result = await _inventoryService.AddMissingIngredientsToShoppingListAsync(CurrentUserId, recipeId);
+
+            if (!result.IsSuccess)
+            {
+                SetErrorMessage(result.ErrorMessage);
+                return RedirectToAction(nameof(Planner));
+            }
+
+            SetSuccessMessage("Інгредієнти додано до списку покупок.");
+            return RedirectToAction(nameof(Planner));
+        }
+
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Cook(int recipeId)
+        {
+            var result = await _inventoryService.CookRecipeAsync(CurrentUserId, recipeId);
+
+            if (!result.IsSuccess)
+            {
+                SetErrorMessage(result.ErrorMessage);
+                return RedirectToAction(nameof(Planner));
+            }
+
+            SetSuccessMessage("Страву приготовано, інгредієнти списано.");
+            return RedirectToAction(nameof(Planner));
         }
 
         private async Task PopulateAvailableCategoriesAsync(RecipeCreateViewModel model)
