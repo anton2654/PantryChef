@@ -52,7 +52,7 @@ namespace PantryChef.Business.Services
                 Age = user.Age,
                 DailyCalorieGoal = user.CalorieGoals,
                 IsCalorieGoalManuallySet = user.IsCalorieGoalManuallySet
-            };
+            }; 
         }
 
         public async Task<Result> SetWeightGoalAsync(int userId, double currentWeightKg, double targetWeightKg)
