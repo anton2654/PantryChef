@@ -12,13 +12,16 @@ namespace PantryChef.Business.Services
     public class NutritionService : INutritionService
     {
         private readonly IRecipeRepository _recipeRepo;
+        private readonly IUserNutritionLogRepository _nutritionLogRepo;
         private readonly ILogger<NutritionService> _logger;
 
         public NutritionService(
             IRecipeRepository recipeRepo,
+            IUserNutritionLogRepository nutritionLogRepo,
             ILogger<NutritionService> logger)
         {
             _recipeRepo = recipeRepo;
+            _nutritionLogRepo = nutritionLogRepo;
             _logger = logger;
         }
 
@@ -81,6 +84,57 @@ namespace PantryChef.Business.Services
                 Math.Round(proteins, 1),
                 Math.Round(fats, 1),
                 Math.Round(carbohydrates, 1));
+        }
+
+        public async Task<Result> AddConsumedNutritionAsync(
+            int userId,
+            double calories,
+            double proteins,
+            double fats,
+            double carbohydrates,
+            DateTime? consumedOn = null)
+        {
+            if (userId <= 0)
+            {
+                _logger.LogWarning("Некоректний ідентифікатор користувача для фіксації харчування: {UserId}", userId);
+                return new Error("Некоректний ідентифікатор користувача.");
+            }
+
+            if (calories < 0 || proteins < 0 || fats < 0 || carbohydrates < 0)
+            {
+                _logger.LogWarning("Негативні поживні значення для користувача {UserId}", userId);
+                return new Error("Поживні значення не можуть бути від'ємними.");
+            }
+
+            var logDate = (consumedOn ?? DateTime.UtcNow).Date;
+
+            var existingLog = await _nutritionLogRepo.GetByUserAndDateAsync(userId, logDate);
+
+            if (existingLog == null)
+            {
+                await _nutritionLogRepo.AddAsync(new UserNutritionLog
+                {
+                    UserId = userId,
+                    LogDate = logDate,
+                    Calories = calories,
+                    Proteins = proteins,
+                    Fats = fats,
+                    Carbohydrates = carbohydrates
+                });
+            }
+            else
+            {
+                existingLog.Calories += calories;
+                existingLog.Proteins += proteins;
+                existingLog.Fats += fats;
+                existingLog.Carbohydrates += carbohydrates;
+                _nutritionLogRepo.Update(existingLog);
+            }
+
+            await _nutritionLogRepo.SaveChangesAsync();
+
+            _logger.LogInformation("Оновлено добову поживну статистику для користувача {UserId} на дату {LogDate}", userId, logDate);
+            return Result.Success();
         }
     }
 }

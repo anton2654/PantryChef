@@ -1,0 +1,133 @@
+@model PantryChef.Web.Models.RecipePlannerViewModel
+
+@{
+    ViewData["Title"] = "Генератор меню";
+}
+
+<div class="container mt-4">
+    <h2 class="mb-3">Генератор меню</h2>
+
+    @if (TempData["SuccessMessage"] is string successMessage)
+    {
+        <div class="alert alert-success" role="alert">@successMessage</div>
+    }
+
+    @if (TempData["ErrorMessage"] is string errorMessage)
+    {
+        <div class="alert alert-danger" role="alert">@errorMessage</div>
+    }
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h4 class="card-title">UC1. Повна генерація меню (Full Match)</h4>
+            <p class="text-muted mb-3">Рецепти, для яких у холодильнику є всі інгредієнти у достатній кількості.</p>
+
+            @if (!Model.FullMatches.Any())
+            {
+                <p class="text-muted">Наразі немає рецептів з повним збігом.</p>
+            }
+            else
+            {
+                <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+                    @foreach (var item in Model.FullMatches)
+                    {
+                        <div class="col">
+                            <div class="card h-100 border-0 shadow-sm">
+                                <div class="card-body d-flex flex-column">
+                                    <h6 class="fw-bold mb-1">@item.Recipe.Name</h6>
+                                    <p class="text-muted small mb-3">Категорія: @item.Recipe.Category</p>
+
+                                    <div class="mt-auto d-flex gap-2">
+                                        <a asp-action="Details" asp-route-id="@item.Recipe.Id" class="btn btn-outline-primary w-50">Деталі</a>
+                                        <form asp-action="Cook" method="post" class="w-50">
+                                            <input type="hidden" name="recipeId" value="@item.Recipe.Id" />
+                                            <button type="submit" class="btn btn-success w-100">Готувати</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h4 class="card-title">UC2. Планування докупок (Partial Match)</h4>
+            <p class="text-muted mb-3">Рецепти з нестачею інгредієнтів. Можна додати дефіцит у список покупок.</p>
+
+            @if (!Model.PartialMatches.Any())
+            {
+                <p class="text-muted">Наразі немає рецептів з частковим збігом.</p>
+            }
+            else
+            {
+                <div class="row row-cols-1 row-cols-lg-2 g-3">
+                    @foreach (var item in Model.PartialMatches)
+                    {
+                        <div class="col">
+                            <div class="card h-100 border-0 shadow-sm">
+                                <div class="card-body d-flex flex-column">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="fw-bold mb-1">@item.Recipe.Name</h6>
+                                            <p class="text-muted small mb-3">Категорія: @item.Recipe.Category</p>
+                                        </div>
+                                        <span class="badge bg-warning text-dark">Нестача: @item.MissingIngredients.Count</span>
+                                    </div>
+
+                                    <ul class="list-group list-group-flush mb-3">
+                                        @foreach (var deficit in item.MissingIngredients)
+                                        {
+                                            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                                <div>
+                                                    <strong>@deficit.IngredientName</strong>
+                                                    <div class="text-muted small">Потрібно: @deficit.RequiredQuantity.ToString("0.##") | Є: @deficit.AvailableQuantity.ToString("0.##")</div>
+                                                </div>
+                                                <span class="badge bg-danger">-@deficit.MissingQuantity.ToString("0.##")</span>
+                                            </li>
+                                        }
+                                    </ul>
+
+                                    <div class="mt-auto d-flex gap-2">
+                                        <a asp-action="Details" asp-route-id="@item.Recipe.Id" class="btn btn-outline-primary w-50">Деталі</a>
+                                        <form asp-action="AddToShoppingList" method="post" class="w-50">
+                                            <input type="hidden" name="recipeId" value="@item.Recipe.Id" />
+                                            <button type="submit" class="btn btn-outline-secondary w-100">Додати у список покупок</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h4 class="card-title">Список покупок</h4>
+            <p class="text-muted mb-3">Поточні товари, що потрібно докупити.</p>
+
+            @if (!Model.ShoppingList.Any())
+            {
+                <p class="text-muted">Список покупок порожній.</p>
+            }
+            else
+            {
+                <ul class="list-group list-group-flush">
+                    @foreach (var item in Model.ShoppingList)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <span>@item.Ingredient.Name</span>
+                            <span class="badge bg-primary">@item.Quantity.ToString("0.##")</span>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+</div>

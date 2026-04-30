@@ -1,0 +1,21 @@
+@model PantryChef.Web.Models.RecipeDeleteViewModel
+
+@{
+    ViewData["Title"] = "Видалення страви";
+}
+
+<div class="container mt-4">
+    <h2 class="mb-4 text-danger">Видалення страви</h2>
+
+    <div class="card border-danger shadow-sm p-4">
+        <p class="mb-2">Ви дійсно хочете видалити цю страву?</p>
+        <p class="mb-1"><strong>Назва:</strong> @Model.Name</p>
+        <p class="mb-3"><strong>Категорія:</strong> @Model.Category</p>
+
+        <form asp-action="Delete" method="post" class="d-flex gap-2">
+            <input type="hidden" asp-for="Id" />
+            <button type="submit" class="btn btn-danger">Видалити</button>
+            <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary">Скасувати</a>
+        </form>
+    </div>
+</div>

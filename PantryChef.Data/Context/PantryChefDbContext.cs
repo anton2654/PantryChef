@@ -11,6 +11,9 @@ namespace PantryChef.Data.Context
         public DbSet<Recipe> Recipes { get; set; }
         public DbSet<RecipeIngredient> RecipeIngredients { get; set; }
         public DbSet<UserIngredient> UserIngredients { get; set; }
+        public DbSet<ShoppingListItem> ShoppingListItems { get; set; }
+        public DbSet<UserNutritionLog> UserNutritionLogs { get; set; }
+        public DbSet<UserRecipe> UserRecipes { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -54,6 +57,24 @@ namespace PantryChef.Data.Context
 
             modelBuilder.Entity<RecipeIngredient>().ToTable("recipe_ingredient");
             modelBuilder.Entity<UserIngredient>().ToTable("user_ingredient");
+            modelBuilder.Entity<ShoppingListItem>().ToTable("shopping_list");
+            modelBuilder.Entity<UserNutritionLog>().ToTable("user_nutrition_log");
+            modelBuilder.Entity<UserRecipe>().ToTable("user_recipe");
+
+            modelBuilder.Entity<ShoppingListItem>()
+                .HasIndex(item => new { item.UserId, item.IngredientId });
+
+            modelBuilder.Entity<UserNutritionLog>()
+                .HasIndex(log => new { log.UserId, log.LogDate })
+                .IsUnique();
+
+            modelBuilder.Entity<UserRecipe>()
+                .HasIndex(link => new { link.UserId, link.RecipeId })
+                .IsUnique();
+
+            modelBuilder.Entity<UserRecipe>()
+                .Property(link => link.IsSaved)
+                .HasDefaultValue(true);
 
             // --- Seed Data ---
 

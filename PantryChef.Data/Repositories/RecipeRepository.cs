@@ -14,6 +14,36 @@ namespace PantryChef.Data.Repositories
         {
         }
 
+        public async Task AddRecipeAsync(Recipe recipe)
+        {
+            await AddAsync(recipe);
+        }
+
+        public void UpdateRecipe(Recipe recipe)
+        {
+            Update(recipe);
+        }
+
+        public void DeleteRecipe(Recipe recipe)
+        {
+            Delete(recipe);
+        }
+
+        public async Task<Recipe> GetRecipeByIdAsync(int id)
+        {
+            return await _dbSet.FirstOrDefaultAsync(recipe => recipe.Id == id);
+        }
+
+        public async Task<IEnumerable<string>> GetAvailableCategoriesAsync()
+        {
+            return await _dbSet
+                .Where(recipe => !string.IsNullOrWhiteSpace(recipe.Category))
+                .Select(recipe => recipe.Category)
+                .Distinct()
+                .OrderBy(category => category)
+                .ToListAsync();
+        }
+
         public async Task<IEnumerable<Recipe>> GetAllRecipesWithIngredientsAsync()
         {
             return await _dbSet

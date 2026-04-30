@@ -28,6 +28,7 @@ namespace PantryChef.Web
                 builder.Host.UseSerilog();
 
                 builder.Services.AddControllersWithViews();
+                builder.Services.AddMemoryCache();
 
                 var supportedCultures = new[]
                 {
@@ -79,6 +80,9 @@ namespace PantryChef.Web
                 builder.Services.AddScoped<PantryChef.Data.Interfaces.IUserIngredientRepository, PantryChef.Data.Repositories.UserIngredientRepository>();
                 builder.Services.AddScoped<PantryChef.Data.Interfaces.IIngredientRepository, PantryChef.Data.Repositories.IngredientRepository>();
                 builder.Services.AddScoped<PantryChef.Data.Interfaces.IUserRepository, PantryChef.Data.Repositories.UserRepository>();
+                builder.Services.AddScoped<PantryChef.Data.Interfaces.IUserRecipeRepository, PantryChef.Data.Repositories.UserRecipeRepository>();
+                builder.Services.AddScoped<PantryChef.Data.Interfaces.IShoppingListRepository, PantryChef.Data.Repositories.ShoppingListRepository>();
+                builder.Services.AddScoped<PantryChef.Data.Interfaces.IUserNutritionLogRepository, PantryChef.Data.Repositories.UserNutritionLogRepository>();
                 builder.Services.AddScoped<PantryChef.Business.Interfaces.IInventoryService, PantryChef.Business.Services.InventoryService>();
 
              
@@ -105,10 +109,12 @@ namespace PantryChef.Web
                 }
 
                 app.UseHttpsRedirection();
+                app.UseMiddleware<PantryChef.Web.Middleware.RequestTimingMiddleware>();
                 app.UseStaticFiles();
 
                 app.UseRouting();
                 app.UseAuthentication();
+                app.UseMiddleware<PantryChef.Web.Middleware.RequestLoggingMiddleware>();
                 app.UseAuthorization();
 
                 app.MapControllerRoute(
