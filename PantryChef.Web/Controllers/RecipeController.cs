@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
 using Microsoft.AspNetCore.Authorization;
+using PantryChef.Web.Filters;
 
 namespace PantryChef.Web.Controllers
 {
@@ -33,6 +34,7 @@ namespace PantryChef.Web.Controllers
         }
 
         [HttpGet]
+        [RateLimit(10)]
         public async Task<IActionResult> Index()
         {
             return await Filter(null, 1);
@@ -72,6 +74,7 @@ namespace PantryChef.Web.Controllers
         }
 
         [HttpGet]
+        [RateLimit(10)]
         public async Task<IActionResult> Filter(string category = null, int page = 1)
         {
             IEnumerable<Recipe> recipes;
@@ -320,6 +323,8 @@ namespace PantryChef.Web.Controllers
         }
 
         [HttpGet]
+        [HttpGet]
+        [RateLimit(10)]
         public async Task<IActionResult> Details(int id)
         {
             if (id <= 0) return BadRequest();
