@@ -41,6 +41,8 @@ namespace PantryChef.Business.Services
         private readonly ILogger<RecipeService> _logger;
         private readonly IMemoryCache _cache;
         private readonly PantryChefSettings _settings;
+        private readonly IInventoryService _inventoryService;
+        private readonly INutritionService _nutritionService;
 
         public RecipeService(
             IRecipeRepository recipeRepo,
@@ -48,7 +50,9 @@ namespace PantryChef.Business.Services
             IUserRecipeRepository userRecipeRepo,
             ILogger<RecipeService> logger,
             IMemoryCache cache,
-            IOptions<PantryChefSettings> options)
+            IOptions<PantryChefSettings> options,
+            IInventoryService inventoryService,
+            INutritionService nutritionService)
         {
             _recipeRepo = recipeRepo;
             _userIngredientRepo = userIngredientRepo;
@@ -56,6 +60,8 @@ namespace PantryChef.Business.Services
             _logger = logger;
             _cache = cache;
             _settings = options?.Value ?? new PantryChefSettings();
+            _inventoryService = inventoryService;
+            _nutritionService = nutritionService;
         }
 
         public async Task<IEnumerable<Recipe>> GetAllRecipesWithIngredientsAsync()
@@ -277,6 +283,56 @@ namespace PantryChef.Business.Services
             await _userRecipeRepo.SaveChangesAsync();
 
             _logger.LogInformation("Користувач {UserId} прибрав страву {RecipeId} зі списку", userId, recipeId);
+            return Result.Success();
+        }
+
+        public async Task<Result> SaveRecipeForUserAsync(int userId, int recipeId)
+        {
+            if (userId <= 0)
+            {
+                const string error = "Некоректний ідентифікатор користувача.";
+                _logger.LogError(error);
+                return Result.Failure(error);
+            }
+
+            if (recipeId <= 0)
+            {
+                const string error = "Некоректний ідентифікатор страви.";
+                _logger.LogError(error);
+                return Result.Failure(error);
+            }
+
+            var recipe = await _recipeRepo.GetRecipeByIdAsync(recipeId);
+
+            if (recipe == null)
+            {
+                var error = $"Страву з ID {recipeId} не знайдено.";
+                _logger.LogError(error);
+                return Result.Failure(error);
+            }
+
+            var link = await _userRecipeRepo.GetAsync(userId, recipeId);
+
+            if (link == null)
+            {
+                await _userRecipeRepo.AddAsync(new UserRecipe
+                {
+                    UserId = userId,
+                    RecipeId = recipeId,
+                    IsSaved = true,
+                    UpdatedAt = DateTime.UtcNow
+                });
+            }
+            else if (!link.IsSaved)
+            {
+                link.IsSaved = true;
+                link.UpdatedAt = DateTime.UtcNow;
+                _userRecipeRepo.Update(link);
+            }
+
+            await _userRecipeRepo.SaveChangesAsync();
+
+            _logger.LogInformation("Користувач {UserId} додав/позначив страву {RecipeId} як збережену", userId, recipeId);
             return Result.Success();
         }
 
@@ -519,6 +575,68 @@ namespace PantryChef.Business.Services
             }
 
             return string.Empty;
+        }
+
+        public async Task<Result> CookRecipeAsync(int userId, int recipeId)
+        {
+            if (userId <= 0)
+            {
+                _logger.LogWarning("Некоректний ідентифікатор користувача для приготування: {UserId}", userId);
+                return new Error("Некоректний ідентифікатор користувача.");
+            }
+
+            if (recipeId <= 0)
+            {
+                _logger.LogWarning("Некоректний ідентифікатор страви для приготування: {RecipeId}", recipeId);
+                return new Error("Некоректний ідентифікатор страви.");
+            }
+
+            var recipe = await _recipeRepo.GetRecipeWithIngredientsByIdAsync(recipeId);
+            if (recipe == null)
+            {
+                _logger.LogWarning("Страву {RecipeId} не знайдено для приготування", recipeId);
+                return Result.Failure($"Страву з ID {recipeId} не знайдено.");
+            }
+
+            // Ensure ingredients are consumed via InventoryService
+            var consumeResult = await _inventoryService.CookRecipeAsync(userId, recipeId);
+            if (!consumeResult.IsSuccess)
+            {
+                _logger.LogWarning("Не вдалося списати інгредієнти для користувача {UserId}, рецепт {RecipeId}: {Error}", userId, recipeId, consumeResult.ErrorMessage);
+                return Result.Failure(consumeResult.ErrorMessage);
+            }
+
+            // Keep the recipe payload normalized after cooking.
+            recipe.WeightGrams = recipe.RecipeIngredients?.Sum(ri => ri.Quantity) ?? 0;
+
+            try
+            {
+                _recipeRepo.Update(recipe);
+                await _recipeRepo.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Не вдалося зберегти інформацію про приготування для рецепта {RecipeId}", recipeId);
+                return Result.Failure("Не вдалося оновити інформацію про страву після приготування.");
+            }
+
+            // Record nutrition consumption
+            var nutrition = _nutritionService.CalculateNutrition(recipe);
+            var nutritionResult = await _nutritionService.AddConsumedNutritionAsync(
+                userId,
+                nutrition.Calories,
+                nutrition.Proteins,
+                nutrition.Fats,
+                nutrition.Carbohydrates);
+
+            if (!nutritionResult.IsSuccess)
+            {
+                _logger.LogWarning("Не вдалося зберегти спожиту поживну цінність для користувача {UserId}: {Error}", userId, nutritionResult.ErrorMessage);
+                return Result.Failure(nutritionResult.ErrorMessage);
+            }
+
+            _logger.LogInformation("Рецепт {RecipeId} приготовано для користувача {UserId}", recipeId, userId);
+            return Result.Success();
         }
 
         private async Task<string> ResolvePhotoUrlAsync(string rawPhotoUrl, string recipeName)

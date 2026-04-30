@@ -257,7 +257,9 @@ public class InventoryAndRecipeControllerTests
             }
         });
 
-        return new RecipeController(recipeServiceMock.Object, nutritionServiceMock.Object, settings)
+        var inventoryServiceMock = new Mock<IInventoryService>();
+
+        return new RecipeController(recipeServiceMock.Object, inventoryServiceMock.Object, nutritionServiceMock.Object, settings)
         {
             TempData = new TempDataDictionary(new DefaultHttpContext(), Mock.Of<ITempDataProvider>())
         };

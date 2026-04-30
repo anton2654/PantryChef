@@ -23,6 +23,8 @@ namespace PantryChef.Business.Interfaces
 
         Task<Result> CookRecipeAsync(int userId, int recipeId);
 
+        Task<Result> RemoveShoppingListItemAsync(int userId, int ingredientId);
+
         Task<Result<IReadOnlyList<ShoppingListItem>>> GetShoppingListAsync(int userId);
     }
 }

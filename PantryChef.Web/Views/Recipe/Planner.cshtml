@@ -40,6 +40,7 @@
                                     <div class="mt-auto d-flex gap-2">
                                         <a asp-action="Details" asp-route-id="@item.Recipe.Id" class="btn btn-outline-primary w-50">Деталі</a>
                                         <form asp-action="Cook" method="post" class="w-50">
+                                            @Html.AntiForgeryToken()
                                             <input type="hidden" name="recipeId" value="@item.Recipe.Id" />
                                             <button type="submit" class="btn btn-success w-100">Готувати</button>
                                         </form>
@@ -94,6 +95,7 @@
                                     <div class="mt-auto d-flex gap-2">
                                         <a asp-action="Details" asp-route-id="@item.Recipe.Id" class="btn btn-outline-primary w-50">Деталі</a>
                                         <form asp-action="AddToShoppingList" method="post" class="w-50">
+                                            @Html.AntiForgeryToken()
                                             <input type="hidden" name="recipeId" value="@item.Recipe.Id" />
                                             <button type="submit" class="btn btn-outline-secondary w-100">Додати у список покупок</button>
                                         </form>
@@ -122,8 +124,17 @@
                     @foreach (var item in Model.ShoppingList)
                     {
                         <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                            <span>@item.Ingredient.Name</span>
-                            <span class="badge bg-primary">@item.Quantity.ToString("0.##")</span>
+                            <div class="d-flex align-items-center gap-3">
+                                <span>@item.Ingredient.Name</span>
+                                <span class="text-muted small">@item.Quantity.ToString("0.##")</span>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <form asp-action="RemoveFromShoppingList" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="ingredientId" value="@item.IngredientId" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Видалити</button>
+                                </form>
+                            </div>
                         </li>
                     }
                 </ul>

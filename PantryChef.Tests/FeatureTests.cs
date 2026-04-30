@@ -91,7 +91,7 @@ namespace PantryChef.Tests
         [Fact]
         public void CalculateNutrition_ShouldSumValuesCorrectlyBasedOnWeight()
         {
-            var service = new NutritionService(null, null); 
+            var service = new NutritionService(null, null, new Moq.Mock<Microsoft.Extensions.Logging.ILogger<PantryChef.Business.Services.NutritionService>>().Object);
             
             var recipe = new Recipe
             {
@@ -147,7 +147,8 @@ namespace PantryChef.Tests
                 }
             });
 
-            return new RecipeController(recipeServiceMock.Object, nutritionServiceMock.Object, settings);
+            var inventoryServiceMock = new Mock<IInventoryService>();
+            return new RecipeController(recipeServiceMock.Object, inventoryServiceMock.Object, nutritionServiceMock.Object, settings);
         }
     }
 }

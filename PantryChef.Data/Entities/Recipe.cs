@@ -18,6 +18,10 @@ namespace PantryChef.Data.Entities
         public string Photo { get; set; }
         public string Category { get; set; }
 
+        // Total estimated weight of the recipe in grams (sum of ingredient quantities)
+        [NotMapped]
+        public double WeightGrams { get; set; }
+
         public virtual ICollection<RecipeIngredient> RecipeIngredients { get; set; } = new List<RecipeIngredient>();
     }
 }

@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using PantryChef.Business.Models;
+using PantryChef.Business.Interfaces;
 using PantryChef.Business.Services;
 using PantryChef.Data.Entities;
 using PantryChef.Data.Interfaces;

@@ -380,9 +380,28 @@ namespace PantryChef.Web.Controllers
         [HttpPost]
         [Authorize]
         [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RemoveFromShoppingList(int ingredientId)
+        {
+            var result = await _inventoryService.RemoveShoppingListItemAsync(CurrentUserId, ingredientId);
+
+            if (!result.IsSuccess)
+            {
+                SetErrorMessage(result.ErrorMessage);
+            }
+            else
+            {
+                SetSuccessMessage("Позицію видалено зі списку покупок.");
+            }
+
+            return RedirectToAction(nameof(Planner));
+        }
+
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Cook(int recipeId)
         {
-            var result = await _inventoryService.CookRecipeAsync(CurrentUserId, recipeId);
+            var result = await _recipeService.CookRecipeAsync(CurrentUserId, recipeId);
 
             if (!result.IsSuccess)
             {

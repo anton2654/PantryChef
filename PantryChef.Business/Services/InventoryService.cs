@@ -334,6 +334,27 @@ namespace PantryChef.Business.Services
             return items;
         }
 
+        public async Task<Result> RemoveShoppingListItemAsync(int userId, int ingredientId)
+        {
+            if (userId <= 0)
+            {
+                _logger.LogWarning("Некоректний ідентифікатор користувача для видалення з списку покупок: {UserId}", userId);
+                return new Error("Некоректний ідентифікатор користувача.");
+            }
+
+            var item = await _shoppingListRepo.GetItemAsync(userId, ingredientId);
+            if (item == null)
+            {
+                return Result.Failure("Позицію не знайдено у списку покупок.");
+            }
+
+            _shoppingListRepo.Delete(item);
+            await _shoppingListRepo.SaveChangesAsync();
+
+            _logger.LogInformation("Позицію {IngredientId} видалено зі списку покупок для користувача {UserId}", ingredientId, userId);
+            return Result.Success();
+        }
+
         private static List<IngredientDeficit> BuildIngredientDeficits(
             Recipe recipe,
             IReadOnlyDictionary<int, double> inventoryMap)
