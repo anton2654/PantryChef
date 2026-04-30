@@ -12,7 +12,6 @@ namespace PantryChef.Web.Models
         public string Name { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Вкажіть опис страви.")]
-        [StringLength(1000, ErrorMessage = "Опис має містити не більше 1000 символів.")]
         [Display(Name = "Опис")]
         public string Description { get; set; } = string.Empty;
 

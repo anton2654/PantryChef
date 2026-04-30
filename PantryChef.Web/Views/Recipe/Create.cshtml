@@ -11,6 +11,26 @@
 
     <form asp-action="Create" method="post" class="card border-0 shadow-sm p-4">
         <div class="row g-3">
+            <div class="col-12">
+                <div class="border rounded p-3 bg-light-subtle">
+                    <h5 class="mb-3">Швидке заповнення з TheMealDB</h5>
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label for="mealdb-area" class="form-label fw-bold">Країна</label>
+                            <select id="mealdb-area" class="form-select">
+                                <option value="">Оберіть країну</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label for="mealdb-meal" class="form-label fw-bold">Назва страви з API</label>
+                            <select id="mealdb-meal" class="form-select" disabled>
+                                <option value="">Спочатку оберіть країну</option>
+                            </select>
+                        </div>
+                    </div>
+                    <small id="mealdb-status" class="text-muted d-block mt-2">Оберіть країну, потім страву. Поля "Назва" і "Опис" заповняться автоматично.</small>
+                </div>
+            </div>
             <div class="col-12 col-md-6">
                 <label asp-for="Name" class="form-label fw-bold"></label>
                 <input asp-for="Name" class="form-control" />
@@ -65,4 +85,120 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            const areaSelect = document.getElementById('mealdb-area');
+            const mealSelect = document.getElementById('mealdb-meal');
+            const status = document.getElementById('mealdb-status');
+            const nameInput = document.getElementById('Name');
+            const descriptionInput = document.getElementById('Description');
+
+            if (!areaSelect || !mealSelect || !nameInput || !descriptionInput) {
+                return;
+            }
+
+            const setStatus = (text) => {
+                status.textContent = text;
+            };
+
+            const clearMealOptions = (placeholder) => {
+                mealSelect.innerHTML = '';
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = placeholder;
+                mealSelect.appendChild(option);
+            };
+
+            const loadAreas = async () => {
+                try {
+                    setStatus('Завантаження списку країн...');
+                    const response = await fetch('@Url.Action("MealDbAreas", "Recipe")');
+                    if (!response.ok) {
+                        throw new Error('Помилка отримання країн');
+                    }
+
+                    const areas = await response.json();
+                    for (const item of areas) {
+                        const option = document.createElement('option');
+                        option.value = item.strArea;
+                        option.textContent = item.strCountry ? `${item.strCountry} (${item.strArea})` : item.strArea;
+                        areaSelect.appendChild(option);
+                    }
+
+                    setStatus('Оберіть країну для підбору страв.');
+                } catch (error) {
+                    setStatus('Не вдалося завантажити країни з TheMealDB.');
+                }
+            };
+
+            areaSelect.addEventListener('change', async () => {
+                const area = areaSelect.value;
+                if (!area) {
+                    clearMealOptions('Спочатку оберіть країну');
+                    mealSelect.disabled = true;
+                    setStatus('Оберіть країну для підбору страв.');
+                    return;
+                }
+
+                try {
+                    mealSelect.disabled = true;
+                    clearMealOptions('Завантаження страв...');
+                    setStatus('Отримуємо список страв...');
+
+                    const response = await fetch(`@Url.Action("MealDbMeals", "Recipe")?area=${encodeURIComponent(area)}`);
+                    if (!response.ok) {
+                        throw new Error('Помилка отримання страв');
+                    }
+
+                    const meals = await response.json();
+                    clearMealOptions('Оберіть страву');
+
+                    for (const meal of meals) {
+                        const option = document.createElement('option');
+                        option.value = meal.idMeal;
+                        option.textContent = meal.strMeal;
+                        option.dataset.mealName = meal.strMeal;
+                        mealSelect.appendChild(option);
+                    }
+
+                    mealSelect.disabled = false;
+                    setStatus('Оберіть назву страви, щоб заповнити форму.');
+                } catch (error) {
+                    clearMealOptions('Не вдалося завантажити страви');
+                    mealSelect.disabled = true;
+                    setStatus('Не вдалося отримати страви для обраної країни.');
+                }
+            });
+
+            mealSelect.addEventListener('change', async () => {
+                const selectedOption = mealSelect.options[mealSelect.selectedIndex];
+                const mealId = selectedOption ? selectedOption.value : '';
+                const mealName = selectedOption ? selectedOption.dataset.mealName : '';
+
+                if (!mealId || !mealName) {
+                    return;
+                }
+
+                nameInput.value = mealName;
+                nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+                try {
+                    setStatus('Завантажуємо опис страви...');
+                    const response = await fetch(`@Url.Action("MealDbInstructions", "Recipe")?mealId=${encodeURIComponent(mealId)}`);
+                    if (!response.ok) {
+                        throw new Error('Помилка отримання опису');
+                    }
+
+                    const data = await response.json();
+                    descriptionInput.value = data.instructions || '';
+                    descriptionInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    setStatus('Поля "Назва" та "Опис" заповнено з TheMealDB.');
+                } catch (error) {
+                    setStatus('Назву заповнено, але не вдалося отримати опис страви.');
+                }
+            });
+
+            loadAreas();
+        })();
+    </script>
 }

@@ -5,6 +5,7 @@ using PantryChef.Data.Context;
 using PantryChef.Data.Entities;
 using Serilog;
 using PantryChef.Business.Models;
+using PantryChef.Web.Clients;
 using System.Globalization;
 
 namespace PantryChef.Web
@@ -29,6 +30,11 @@ namespace PantryChef.Web
 
                 builder.Services.AddControllersWithViews();
                 builder.Services.AddMemoryCache();
+                builder.Services.AddHttpClient<IMealDbClient, MealDbClient>(client =>
+                {
+                    client.BaseAddress = new Uri("https://www.themealdb.com/api/json/v1/1/");
+                    client.Timeout = TimeSpan.FromSeconds(15);
+                });
 
                 var supportedCultures = new[]
                 {

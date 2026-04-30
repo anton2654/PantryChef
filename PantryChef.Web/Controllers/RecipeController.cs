@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 
 using Microsoft.AspNetCore.Authorization;
 using PantryChef.Web.Filters;
+using PantryChef.Web.Clients;
 
 namespace PantryChef.Web.Controllers
 {
@@ -19,17 +20,20 @@ namespace PantryChef.Web.Controllers
         private readonly IRecipeService _recipeService;
         private readonly IInventoryService _inventoryService;
         private readonly INutritionService _nutritionService;
+        private readonly IMealDbClient _mealDbClient;
         private readonly PantryChefSettings _settings;
 
         public RecipeController(
             IRecipeService recipeService,
             IInventoryService inventoryService,
             INutritionService nutritionService,
-            IOptions<PantryChefSettings> options)
+            IOptions<PantryChefSettings> options,
+            IMealDbClient mealDbClient = null)
         {
             _recipeService = recipeService;
             _inventoryService = inventoryService;
             _nutritionService = nutritionService;
+            _mealDbClient = mealDbClient;
             _settings = options?.Value ?? new PantryChefSettings();
         }
 
@@ -79,7 +83,8 @@ namespace PantryChef.Web.Controllers
         {
             IEnumerable<Recipe> recipes;
 
-            if (User.Identity?.IsAuthenticated ?? false)
+            var isAuthenticated = ControllerContext?.HttpContext?.User?.Identity?.IsAuthenticated ?? false;
+            if (isAuthenticated)
             {
                 var userRecipesResult = await _recipeService.GetUserRecipesAsync(CurrentUserId, category);
                 if (!userRecipesResult.IsSuccess)
@@ -100,7 +105,8 @@ namespace PantryChef.Web.Controllers
             }
 
             var allRecipes = (recipes ?? Enumerable.Empty<Recipe>()).ToList();
-            var pageSize = _settings.Pagination.DefaultPageSize > 0 ? _settings.Pagination.DefaultPageSize : 12;
+            var defaultPageSize = _settings?.Pagination?.DefaultPageSize ?? 0;
+            var pageSize = defaultPageSize > 0 ? defaultPageSize : 12;
             var totalItems = allRecipes.Count;
             var totalPages = totalItems == 0
                 ? 0
@@ -127,16 +133,17 @@ namespace PantryChef.Web.Controllers
 
             if (!categories.Any())
             {
-                categories = _settings.RecipeFilter.Categories
+                categories = (_settings?.RecipeFilter?.Categories ?? Enumerable.Empty<string>())
                     .Where(c => !string.IsNullOrWhiteSpace(c))
                     .Select(c => c.Trim())
                     .Distinct(System.StringComparer.OrdinalIgnoreCase)
                     .ToList();
             }
 
-            var allCategoryLabel = string.IsNullOrWhiteSpace(_settings.RecipeFilter.AllCategoryLabel)
+            var configuredAllCategoryLabel = _settings?.RecipeFilter?.AllCategoryLabel;
+            var allCategoryLabel = string.IsNullOrWhiteSpace(configuredAllCategoryLabel)
                 ? "Всі страви"
-                : _settings.RecipeFilter.AllCategoryLabel;
+                : configuredAllCategoryLabel;
 
             var options = new List<RecipeCategoryOptionViewModel>
             {
@@ -208,6 +215,45 @@ namespace PantryChef.Web.Controllers
 
             SetSuccessMessage("Страву успішно додано.");
             return RedirectToAction(nameof(Details), new { id = result.Data });
+        }
+
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> MealDbAreas()
+        {
+            if (_mealDbClient == null)
+            {
+                return StatusCode(503, new { error = "MealDB integration is unavailable." });
+            }
+
+            var areas = await _mealDbClient.GetAreasAsync(HttpContext.RequestAborted);
+            return Json(areas);
+        }
+
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> MealDbMeals(string area)
+        {
+            if (_mealDbClient == null)
+            {
+                return StatusCode(503, new { error = "MealDB integration is unavailable." });
+            }
+
+            var meals = await _mealDbClient.GetMealsByAreaAsync(area, HttpContext.RequestAborted);
+            return Json(meals);
+        }
+
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> MealDbInstructions(string mealId)
+        {
+            if (_mealDbClient == null)
+            {
+                return StatusCode(503, new { error = "MealDB integration is unavailable." });
+            }
+
+            var instructions = await _mealDbClient.GetMealInstructionsAsync(mealId, HttpContext.RequestAborted);
+            return Json(new { instructions });
         }
 
         [HttpGet]
@@ -425,7 +471,7 @@ namespace PantryChef.Web.Controllers
 
             if (categories.Count == 0)
             {
-                categories = _settings.RecipeFilter.Categories
+                categories = (_settings?.RecipeFilter?.Categories ?? Enumerable.Empty<string>())
                     .Where(category => !string.IsNullOrWhiteSpace(category))
                     .Select(category => category.Trim())
                     .Distinct(StringComparer.OrdinalIgnoreCase)
