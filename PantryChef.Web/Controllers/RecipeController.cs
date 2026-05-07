@@ -50,7 +50,6 @@ namespace PantryChef.Web.Controllers
         {
             var fullMatchResult = await _recipeService.GetFullMatchRecipesAsync(CurrentUserId);
             var partialMatchResult = await _recipeService.GetPartialMatchRecipesAsync(CurrentUserId);
-            var shoppingListResult = await _inventoryService.GetShoppingListAsync(CurrentUserId);
 
             if (!fullMatchResult.IsSuccess)
             {
@@ -62,19 +61,28 @@ namespace PantryChef.Web.Controllers
                 SetErrorMessage(partialMatchResult.ErrorMessage);
             }
 
-            if (!shoppingListResult.IsSuccess)
-            {
-                SetErrorMessage(shoppingListResult.ErrorMessage);
-            }
-
             var model = new RecipePlannerViewModel
             {
                 FullMatches = fullMatchResult.IsSuccess ? fullMatchResult.Data : new List<RecipeMatchResult>(),
-                PartialMatches = partialMatchResult.IsSuccess ? partialMatchResult.Data : new List<RecipeMatchResult>(),
-                ShoppingList = shoppingListResult.IsSuccess ? shoppingListResult.Data : new List<ShoppingListItem>()
+                PartialMatches = partialMatchResult.IsSuccess ? partialMatchResult.Data : new List<RecipeMatchResult>()
             };
 
             return View(model);
+        }
+
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> ShoppingList()
+        {
+            var shoppingListResult = await _inventoryService.GetShoppingListAsync(CurrentUserId);
+
+            if (!shoppingListResult.IsSuccess)
+            {
+                SetErrorMessage(shoppingListResult.ErrorMessage);
+                return View(new List<ShoppingListItem>());
+            }
+
+            return View(shoppingListResult.Data);
         }
 
         [HttpGet]
@@ -444,7 +452,7 @@ namespace PantryChef.Web.Controllers
                 SetSuccessMessage("Позицію видалено зі списку покупок.");
             }
 
-            return RedirectToAction(nameof(Planner));
+            return RedirectToAction(nameof(ShoppingList));
         }
 
         [HttpPost]

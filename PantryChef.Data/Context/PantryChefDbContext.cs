@@ -14,6 +14,7 @@ namespace PantryChef.Data.Context
         public DbSet<ShoppingListItem> ShoppingListItems { get; set; }
         public DbSet<UserNutritionLog> UserNutritionLogs { get; set; }
         public DbSet<UserRecipe> UserRecipes { get; set; }
+        public DbSet<SystemNotification> SystemNotifications { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -60,6 +61,7 @@ namespace PantryChef.Data.Context
             modelBuilder.Entity<ShoppingListItem>().ToTable("shopping_list");
             modelBuilder.Entity<UserNutritionLog>().ToTable("user_nutrition_log");
             modelBuilder.Entity<UserRecipe>().ToTable("user_recipe");
+            modelBuilder.Entity<SystemNotification>().ToTable("system_notification");
 
             modelBuilder.Entity<ShoppingListItem>()
                 .HasIndex(item => new { item.UserId, item.IngredientId });
@@ -75,6 +77,16 @@ namespace PantryChef.Data.Context
             modelBuilder.Entity<UserRecipe>()
                 .Property(link => link.IsSaved)
                 .HasDefaultValue(true);
+
+            modelBuilder.Entity<SystemNotification>(entity =>
+            {
+                entity.Property(notification => notification.EventKey).IsRequired();
+                entity.Property(notification => notification.Type).IsRequired();
+                entity.Property(notification => notification.Title).IsRequired();
+                entity.Property(notification => notification.Message).IsRequired();
+                entity.HasIndex(notification => notification.EventKey).IsUnique();
+                entity.HasIndex(notification => new { notification.UserId, notification.IsRead, notification.CreatedAt });
+            });
 
             // --- Seed Data ---
 

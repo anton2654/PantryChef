@@ -18,7 +18,6 @@ namespace PantryChef.Web.Controllers
     {
         private readonly IInventoryService _inventoryService;
         private readonly PantryChefSettings _settings;
-        private readonly int _currentUserId = 1; // Тимчасово Alice Smith
 
         public InventoryController(IInventoryService inventoryService, IOptions<PantryChefSettings> options)
         {
@@ -74,7 +73,7 @@ namespace PantryChef.Web.Controllers
         {
             if (id <= 0) return BadRequest();
 
-            var inventory = await _inventoryService.GetUserInventoryAsync(_currentUserId);
+            var inventory = await _inventoryService.GetUserInventoryAsync(CurrentUserId);
             
             var item = inventory.FirstOrDefault(i => i.IngredientId == id);
 
@@ -99,7 +98,7 @@ namespace PantryChef.Web.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            var result = await _inventoryService.UpdateIngredientQuantityAsync(_currentUserId, ingredientId, quantity);
+            var result = await _inventoryService.UpdateIngredientQuantityAsync(CurrentUserId, ingredientId, quantity);
 
             if (!result.IsSuccess)
             {
@@ -117,7 +116,7 @@ namespace PantryChef.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RemoveIngredient(int ingredientId)
         {
-            var result = await _inventoryService.RemoveIngredientAsync(_currentUserId, ingredientId);
+            var result = await _inventoryService.RemoveIngredientAsync(CurrentUserId, ingredientId);
 
             if (!result.IsSuccess)
             {

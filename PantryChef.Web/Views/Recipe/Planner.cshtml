@@ -19,7 +19,7 @@
 
     <div class="card shadow-sm mb-4">
         <div class="card-body">
-            <h4 class="card-title">UC1. Повна генерація меню (Full Match)</h4>
+            <h4 class="card-title">Повна генерація меню</h4>
             <p class="text-muted mb-3">Рецепти, для яких у холодильнику є всі інгредієнти у достатній кількості.</p>
 
             @if (!Model.FullMatches.Any())
@@ -56,7 +56,7 @@
 
     <div class="card shadow-sm mb-4">
         <div class="card-body">
-            <h4 class="card-title">UC2. Планування докупок (Partial Match)</h4>
+            <h4 class="card-title">Планування докупок</h4>
             <p class="text-muted mb-3">Рецепти з нестачею інгредієнтів. Можна додати дефіцит у список покупок.</p>
 
             @if (!Model.PartialMatches.Any())
@@ -105,39 +105,6 @@
                         </div>
                     }
                 </div>
-            }
-        </div>
-    </div>
-
-    <div class="card shadow-sm">
-        <div class="card-body">
-            <h4 class="card-title">Список покупок</h4>
-            <p class="text-muted mb-3">Поточні товари, що потрібно докупити.</p>
-
-            @if (!Model.ShoppingList.Any())
-            {
-                <p class="text-muted">Список покупок порожній.</p>
-            }
-            else
-            {
-                <ul class="list-group list-group-flush">
-                    @foreach (var item in Model.ShoppingList)
-                    {
-                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                            <div class="d-flex align-items-center gap-3">
-                                <span>@item.Ingredient.Name</span>
-                                <span class="text-muted small">@item.Quantity.ToString("0.##")</span>
-                            </div>
-                            <div class="d-flex gap-2">
-                                <form asp-action="RemoveFromShoppingList" method="post">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="ingredientId" value="@item.IngredientId" />
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">Видалити</button>
-                                </form>
-                            </div>
-                        </li>
-                    }
-                </ul>
             }
         </div>
     </div>

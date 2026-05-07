@@ -451,6 +451,11 @@ namespace PantryChef.Business.Services
 
             foreach (var recipe in recipes)
             {
+                if (!HasRequiredIngredients(recipe))
+                {
+                    continue;
+                }
+
                 var deficits = BuildIngredientDeficits(recipe, inventoryMap);
                 if (deficits.Count == 0)
                 {
@@ -484,6 +489,11 @@ namespace PantryChef.Business.Services
 
             foreach (var recipe in recipes)
             {
+                if (!HasRequiredIngredients(recipe))
+                {
+                    continue;
+                }
+
                 var deficits = BuildIngredientDeficits(recipe, inventoryMap);
                 if (deficits.Count > 0)
                 {
@@ -537,6 +547,11 @@ namespace PantryChef.Business.Services
             }
 
             return deficits;
+        }
+
+        private static bool HasRequiredIngredients(Recipe recipe)
+        {
+            return recipe?.RecipeIngredients?.Any(ingredient => ingredient.Quantity > 0) == true;
         }
 
         private static string ValidateRecipeData(

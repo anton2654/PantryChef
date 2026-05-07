@@ -48,15 +48,15 @@
             @foreach (var item in Model.Recipes)
             {
                 <div class="col">
-                    <div class="card h-100 border-0 shadow-sm" style="border-radius: 12px; background-color: #fcfcfc;">
-                        <div style="height: 200px; overflow: hidden; border-top-left-radius: 12px; border-top-right-radius: 12px; background-color: #d9d9d9;">
+                    <div class="card pantry-card recipe-card h-100 border-0 shadow-sm">
+                        <div class="card-media">
                             @if (!string.IsNullOrEmpty(item.Photo))
                             {
-                                <img src="@item.Photo" alt="@item.Name" class="w-100 h-100" style="object-fit: cover;" onerror="this.onerror=null;this.src='https://placehold.co/640x360/e9ecef/6c757d?text=No+Image';" />
+                                <img src="@item.Photo" alt="@item.Name" class="w-100 h-100 img-cover" onerror="this.onerror=null;this.src='https://placehold.co/640x360/e9ecef/6c757d?text=No+Image';" />
                             }
                             else
                             {
-                                <img src="https://placehold.co/640x360/e9ecef/6c757d?text=No+Image" alt="Немає зображення" class="w-100 h-100" style="object-fit: cover;" />
+                                <img src="https://placehold.co/640x360/e9ecef/6c757d?text=No+Image" alt="Немає зображення" class="w-100 h-100 img-cover" />
                             }
                         </div>
                         <div class="card-body text-center d-flex flex-column">
@@ -64,12 +64,12 @@
                             <p class="text-muted small mb-3">Категорія: @item.Category</p>
                             
                             <div class="mt-auto">
-                                <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-primary w-100" style="border-radius: 8px;">Деталі</a>
+                                <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-primary w-100">Деталі</a>
                                 @if (isAuthenticated)
                                 {
                                     <div class="d-flex gap-2 mt-2">
-                                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-secondary w-50" style="border-radius: 8px;">Редагувати</a>
-                                        <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-outline-danger w-50" style="border-radius: 8px;">Видалити</a>
+                                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-secondary w-50">Редагувати</a>
+                                        <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-outline-danger w-50">Видалити</a>
                                     </div>
                                 }
                             </div>

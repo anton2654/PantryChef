@@ -1,0 +1,46 @@
+.row-cols-lg-5 .card-title,
+.row-cols-lg-4 .card-title {
+  line-height: 1.25;
+}
+
+.card-title {
+  color: var(--pc-ink);
+}
+
+.list-group-item {
+  border-color: rgba(47, 111, 78, 0.12);
+}
+
+.pagination .page-link {
+  color: var(--pc-green);
+}
+
+.pagination .active .page-link {
+  background: var(--pc-green);
+  border-color: var(--pc-green);
+  color: #ffffff;
+}
+
+.alert {
+  border: 0;
+  box-shadow: 0 8px 20px rgba(23, 32, 42, 0.06);
+}
+
+.form-label {
+  color: #2f3a45;
+}
+
+form.bg-light,
+.bg-light-subtle {
+  background-color: #f8fbf8 !important;
+}
+
+.recipe-card .card-body,
+.inventory-card .card-body {
+  min-height: 205px;
+}
+
+.recipe-card .btn,
+.inventory-card .btn {
+  font-weight: 600;
+}

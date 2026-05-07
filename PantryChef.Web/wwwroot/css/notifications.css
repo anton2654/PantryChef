@@ -1,0 +1,127 @@
+.btn-notification,
+.btn-shopping-list {
+  align-items: center;
+  background: var(--pc-mint);
+  border: 1px solid rgba(47, 111, 78, 0.16);
+  color: var(--pc-green);
+  display: inline-flex;
+  height: 38px;
+  justify-content: center;
+  width: 38px;
+}
+
+.btn-notification:hover,
+.btn-notification:focus,
+.btn-shopping-list:hover,
+.btn-shopping-list:focus {
+  background: #dff1e6;
+  color: var(--pc-green-strong);
+}
+
+.notification-menu {
+  border: 1px solid var(--pc-border);
+  box-shadow: var(--pc-shadow);
+  max-width: calc(100vw - 2rem);
+  width: 360px;
+  z-index: 2100;
+}
+
+.notification-menu__header {
+  align-items: center;
+  border-bottom: 1px solid var(--pc-border);
+  display: flex;
+  justify-content: space-between;
+  padding: 0.85rem 1rem;
+}
+
+.notification-list {
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.notification-item {
+  background: #ffffff;
+  border: 0;
+  border-bottom: 1px solid rgba(47, 111, 78, 0.1);
+  display: block;
+  padding: 0.85rem 1rem;
+  text-align: left;
+  width: 100%;
+}
+
+.notification-item:hover,
+.notification-item:focus {
+  background: var(--pc-mint);
+}
+
+.notification-item.is-unread {
+  box-shadow: inset 4px 0 0 var(--pc-green);
+}
+
+.notification-item__title {
+  color: var(--pc-ink);
+  display: block;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.notification-item__message {
+  color: var(--pc-muted);
+  display: block;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  margin-top: 0.25rem;
+}
+
+.notification-item__time,
+.notification-empty {
+  color: var(--pc-muted);
+  display: block;
+  font-size: 0.78rem;
+  margin-top: 0.35rem;
+}
+
+.notification-empty {
+  padding: 1rem;
+  text-align: center;
+}
+
+.notification-toast-stack {
+  display: grid;
+  gap: 0.75rem;
+  max-width: calc(100vw - 2rem);
+  position: fixed;
+  right: 1rem;
+  top: 5rem;
+  width: 340px;
+  z-index: 2200;
+}
+
+.notification-toast {
+  animation: notification-enter 180ms ease-out;
+  background: #ffffff;
+  border: 1px solid var(--pc-border);
+  border-left: 5px solid var(--pc-green);
+  box-shadow: var(--pc-shadow);
+  padding: 0.9rem 1rem;
+}
+
+@keyframes notification-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 575.98px) {
+  .notification-toast-stack {
+    left: 1rem;
+    right: 1rem;
+    width: auto;
+  }
+}

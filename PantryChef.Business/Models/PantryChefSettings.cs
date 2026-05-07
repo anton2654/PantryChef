@@ -9,6 +9,7 @@ namespace PantryChef.Business.Models
         public InventorySettings Inventory { get; set; } = new();
         public RecipeFilterSettings RecipeFilter { get; set; } = new();
         public CachingSettings Caching { get; set; } = new();
+        public NotificationSettings Notifications { get; set; } = new();
     }
 
     public class PaginationSettings
@@ -45,5 +46,12 @@ namespace PantryChef.Business.Models
     {
         public int AvailableIngredientsTtlMinutes { get; set; } = 30;
         public int AvailableRecipeCategoriesTtlMinutes { get; set; } = 30;
+    }
+
+    public class NotificationSettings
+    {
+        public int CheckIntervalSeconds { get; set; } = 10;
+        public double LowStockThreshold { get; set; } = 50;
+        public int ShoppingListLookbackDays { get; set; } = 7;
     }
 }

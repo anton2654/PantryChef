@@ -1,0 +1,51 @@
+@using PantryChef.Data.Entities
+@model IReadOnlyList<ShoppingListItem>
+
+@{
+    ViewData["Title"] = "Список покупок";
+}
+
+<div class="container mt-4">
+    @if (TempData["SuccessMessage"] is string successMessage)
+    {
+        <div class="alert alert-success" role="alert">@successMessage</div>
+    }
+
+    @if (TempData["ErrorMessage"] is string errorMessage)
+    {
+        <div class="alert alert-danger" role="alert">@errorMessage</div>
+    }
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h4 class="card-title">Список покупок</h4>
+            <p class="text-muted mb-3">Поточні товари, що потрібно докупити.</p>
+
+            @if (!Model.Any())
+            {
+                <p class="text-muted">Список покупок порожній.</p>
+            }
+            else
+            {
+                <ul class="list-group list-group-flush">
+                    @foreach (var item in Model)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <div class="d-flex align-items-center gap-3">
+                                <span>@item.Ingredient.Name</span>
+                                <span class="text-muted small">@item.Quantity.ToString("0.##")</span>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <form asp-action="RemoveFromShoppingList" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="ingredientId" value="@item.IngredientId" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Видалити</button>
+                                </form>
+                            </div>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+</div>

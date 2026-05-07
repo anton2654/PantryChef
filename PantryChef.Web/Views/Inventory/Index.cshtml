@@ -59,7 +59,7 @@
         <button type="submit" class="btn btn-primary px-4">Застосувати</button>
 
         <div class="ms-auto d-flex align-items-center gap-2">
-            <input type="text" name="searchQuery" value="@Model.SearchQuery" class="form-control" minlength="@Model.MinSearchLength" placeholder="Пошук інгредієнта (мін. @Model.MinSearchLength симв.)..." style="width: 250px;" />
+            <input type="text" name="searchQuery" value="@Model.SearchQuery" class="form-control inventory-search-input" minlength="@Model.MinSearchLength" placeholder="Пошук інгредієнта (мін. @Model.MinSearchLength симв.)..." />
             <button type="submit" class="btn btn-outline-secondary">Знайти</button>
             
             @if (!string.IsNullOrEmpty(Model.SearchQuery) || !string.IsNullOrEmpty(Model.SelectedCategory))
@@ -82,11 +82,11 @@
             @foreach (var item in Model.Inventory)
             {
                 <div class="col">
-                    <div class="card h-100 border-0 shadow-sm" style="border-radius: 12px; background-color: #fcfcfc;">
-                        <div style="height: 150px; overflow: hidden; border-top-left-radius: 12px; border-top-right-radius: 12px; background-color: #d9d9d9;">
+                    <div class="card pantry-card inventory-card h-100 border-0 shadow-sm">
+                        <div class="card-media card-media--sm">
                             @if (!string.IsNullOrEmpty(item.Ingredient.Photo))
                             {
-                                <img src="@item.Ingredient.Photo" alt="@item.Ingredient.Name" class="w-100 h-100" style="object-fit: cover;" />
+                                <img src="@item.Ingredient.Photo" alt="@item.Ingredient.Name" class="w-100 h-100 img-cover" />
                             }
                             else
                             {
@@ -102,20 +102,20 @@
                             
                             <form asp-action="UpdateQuantity" method="post" class="mt-2 mb-3 d-flex align-items-center justify-content-center gap-1">
                                 <input type="hidden" name="ingredientId" value="@item.IngredientId" />
-                                <input type="number" name="quantity" value="@item.Quantity" class="form-control form-control-sm text-center border-success-subtle text-success fw-bold" style="width: 80px; border-radius: 8px;" min="0.1" step="0.1" required />
+                                <input type="number" name="quantity" value="@item.Quantity" class="form-control form-control-sm text-center border-success-subtle text-success fw-bold quantity-input" min="0.1" step="0.1" required />
                                 <span class="text-muted small">г/шт</span>
-                                <button type="submit" class="btn btn-sm btn-success text-white px-2" style="border-radius: 8px;" title="Зберегти кількість">
+                                <button type="submit" class="btn btn-sm btn-success text-white px-2 btn-icon" title="Зберегти кількість">
                                     ✓
                                 </button>
                             </form>
 
                             <div class="mt-auto d-flex gap-2">
-                                <a asp-action="Details" asp-route-id="@item.IngredientId" class="btn btn-sm btn-outline-primary w-50" style="border-radius: 8px;">
+                                <a asp-action="Details" asp-route-id="@item.IngredientId" class="btn btn-sm btn-outline-primary w-50">
                                     Деталі
                                 </a>
                                 <form asp-action="RemoveIngredient" method="post" class="w-50">
                                     <input type="hidden" name="ingredientId" value="@item.IngredientId" />
-                                    <button type="submit" class="btn btn-sm btn-outline-danger w-100" style="border-radius: 8px;" onclick="return confirm('Ви впевнені, що хочете видалити цей продукт з холодильника?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger w-100" data-confirm="Ви впевнені, що хочете видалити цей продукт з холодильника?">
                                         Видалити
                                     </button>
                                 </form>
@@ -128,16 +128,3 @@
     </div>
 </div>
 
-<style>
-    .card {
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
-    }
-    .form-select:focus {
-        border-color: #0d6efd;
-        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-    }
-</style>

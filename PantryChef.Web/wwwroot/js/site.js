@@ -1,4 +1,13 @@
-﻿// Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
-// for details on configuring this project to bundle and minify static web assets.
+(function () {
+  document.addEventListener('click', function (event) {
+    const trigger = event.target.closest('[data-confirm]');
+    if (!trigger) {
+      return;
+    }
 
-// Write your JavaScript code.
+    const message = trigger.getAttribute('data-confirm');
+    if (message && !window.confirm(message)) {
+      event.preventDefault();
+    }
+  });
+})();

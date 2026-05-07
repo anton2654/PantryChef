@@ -6,7 +6,10 @@ using PantryChef.Data.Entities;
 using Serilog;
 using PantryChef.Business.Models;
 using PantryChef.Web.Clients;
+using PantryChef.Web.Hubs;
+using PantryChef.Web.Services;
 using System.Globalization;
+using WebOptimizer;
 
 namespace PantryChef.Web
 { 
@@ -30,6 +33,25 @@ namespace PantryChef.Web
 
                 builder.Services.AddControllersWithViews();
                 builder.Services.AddMemoryCache();
+                builder.Services.AddSignalR();
+                builder.Services.AddWebOptimizer(pipeline =>
+                {
+                    pipeline.AddCssBundle(
+                        "/css/app.min.css",
+                        "/lib/bootstrap/dist/css/bootstrap.css",
+                        "/css/site.css",
+                        "/css/components.css",
+                        "/css/notifications.css");
+
+                    pipeline.AddJavaScriptBundle(
+                        "/js/app.min.js",
+                        "/lib/jquery/dist/jquery.js",
+                        "/lib/bootstrap/dist/js/bootstrap.bundle.js",
+                        "/js/vendor/signalr.min.js",
+                        "/js/site.js",
+                        "/js/mealdb-create.js",
+                        "/js/notifications.js");
+                });
                 builder.Services.AddHttpClient<IMealDbClient, MealDbClient>(client =>
                 {
                     client.BaseAddress = new Uri("https://www.themealdb.com/api/json/v1/1/");
@@ -90,6 +112,7 @@ namespace PantryChef.Web
                 builder.Services.AddScoped<PantryChef.Data.Interfaces.IShoppingListRepository, PantryChef.Data.Repositories.ShoppingListRepository>();
                 builder.Services.AddScoped<PantryChef.Data.Interfaces.IUserNutritionLogRepository, PantryChef.Data.Repositories.UserNutritionLogRepository>();
                 builder.Services.AddScoped<PantryChef.Business.Interfaces.IInventoryService, PantryChef.Business.Services.InventoryService>();
+                builder.Services.AddHostedService<NotificationBackgroundService>();
 
              
                 
@@ -116,6 +139,7 @@ namespace PantryChef.Web
 
                 app.UseHttpsRedirection();
                 app.UseMiddleware<PantryChef.Web.Middleware.RequestTimingMiddleware>();
+                app.UseWebOptimizer();
                 app.UseStaticFiles();
 
                 app.UseRouting();
@@ -126,6 +150,7 @@ namespace PantryChef.Web
                 app.MapControllerRoute(
                     name: "default",
                     pattern: "{controller=Home}/{action=Index}/{id?}");
+                app.MapHub<NotificationHub>("/notificationsHub");
 
                 app.Run();
             }
