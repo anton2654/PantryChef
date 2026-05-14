@@ -102,3 +102,6 @@ dotnet run --project PantryChef.Web
 
 - Для локальної розробки рядок підключення читається з User Secrets.
 - Для прод-розгортання використовуйте змінні середовища або менеджер секретів (наприклад, Azure Key Vault), а не `secrets.json`.
+
+
+CI/CD and SonarQube Cloud are configured for this project.
