@@ -41,7 +41,7 @@ jobs:
           dotnet sonarscanner begin \
             /k:"anton2654_PantryChef" \
             /o:"anton2654" \
-            /d:sonar.token="${{ secrets.SONAR_TOKEN }}" \
+            /d:sonar.token="$SONAR_TOKEN" \
             /d:sonar.host.url="https://sonarcloud.io" \
             /d:sonar.qualitygate.wait=true
 
@@ -57,4 +57,4 @@ jobs:
       - name: End SonarQube Cloud analysis
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: dotnet sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+        run: dotnet sonarscanner end /d:sonar.token="$SONAR_TOKEN"
