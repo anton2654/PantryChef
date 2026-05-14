@@ -12,7 +12,7 @@ namespace PantryChef.Web.Controllers
         {
             get
             {
-                var identityUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                var identityUserId = User?.FindFirstValue(ClaimTypes.NameIdentifier);
                 if (string.IsNullOrWhiteSpace(identityUserId))
                 {
                     return 1;

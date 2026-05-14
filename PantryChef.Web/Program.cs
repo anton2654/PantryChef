@@ -10,6 +10,7 @@ using PantryChef.Web.Hubs;
 using PantryChef.Web.Services;
 using System.Globalization;
 using WebOptimizer;
+using Azure.Identity;
 
 namespace PantryChef.Web
 { 
@@ -19,6 +20,15 @@ namespace PantryChef.Web
         {
             var builder = WebApplication.CreateBuilder(args);
             builder.Configuration.AddUserSecrets(typeof(Program).Assembly, optional: true, reloadOnChange: true);
+
+            var keyVaultName = builder.Configuration["KeyVaultName"];
+
+            if (builder.Environment.IsProduction() && !string.IsNullOrWhiteSpace(keyVaultName))
+            {
+                builder.Configuration.AddAzureKeyVault(
+                    new Uri($"https://{keyVaultName}.vault.azure.net/"),
+                    new DefaultAzureCredential());
+            }
 
             Log.Logger = new LoggerConfiguration()
                 .ReadFrom.Configuration(builder.Configuration) 
@@ -38,15 +48,12 @@ namespace PantryChef.Web
                 {
                     pipeline.AddCssBundle(
                         "/css/app.min.css",
-                        "/lib/bootstrap/dist/css/bootstrap.css",
                         "/css/site.css",
                         "/css/components.css",
                         "/css/notifications.css");
 
                     pipeline.AddJavaScriptBundle(
                         "/js/app.min.js",
-                        "/lib/jquery/dist/jquery.js",
-                        "/lib/bootstrap/dist/js/bootstrap.bundle.js",
                         "/js/vendor/signalr.min.js",
                         "/js/site.js",
                         "/js/mealdb-create.js",
