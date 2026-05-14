@@ -4,12 +4,15 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 env:
-  DOTNET_VERSION: '8.0.x'
-  AZURE_WEBAPP_NAME: 'pantrychef-web'
-  WEB_PROJECT_PATH: 'PantryChef.Web/PantryChef.Web.csproj'
+  DOTNET_VERSION: "8.0.x"
+  AZURE_WEBAPP_NAME: "pantrychef-web"
+  WEB_PROJECT_PATH: "PantryChef.Web/PantryChef.Web.csproj"
 
 jobs:
   build-test-deploy:
@@ -37,6 +40,7 @@ jobs:
         run: dotnet publish ${{ env.WEB_PROJECT_PATH }} --configuration Release --output ./publish
 
       - name: Deploy to Azure App Service
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
