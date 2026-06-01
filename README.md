@@ -1,5 +1,5 @@
 # PantryChef - Інтелектуальне керування продуктами та рецептами
-
+HI!
 **PantryChef** - це сучасний вебзастосунок, створений для ефективного управління домашніми запасами продуктів, мінімізації харчових відходів та автоматизованого підбору рецептів відповідно до дієтичних цілей користувача.
 
 ---
@@ -105,3 +105,126 @@ dotnet run --project PantryChef.Web
 
 
 CI/CD and SonarQube Cloud are configured for this project.
+
+---
+
+## Структура проєкту
+
+```
+PantryChef/
+|
+|-- PantryChef.Web/                        ← Веб-шар (MVC, Razor Views)
+|   |-- Controllers/
+|   |   |-- BaseController.cs              ← Базовий контролер (CurrentUserId)
+|   |   |-- AccountController.cs           ← Реєстрація, логін, відновлення паролю
+|   |   |-- HomeController.cs              ← Головна сторінка
+|   |   |-- InventoryController.cs         ← Управління коморою
+|   |   |-- RecipeController.cs            ← Рецепти, планувальник, список покупок
+|   |   |-- ProfileController.cs           ← Профіль користувача
+|   |   └-- NotificationController.cs      ← Сповіщення
+|   |
+|   |-- Views/
+|   |   |-- Account/                       ← Register, Login, ForgotPassword, ResetPassword
+|   |   |-- Home/                          ← Index, Privacy
+|   |   |-- Inventory/                     ← Index, Details
+|   |   |-- Recipe/                        ← Index, Details, Create, Edit, Delete, Planner, ShoppingList
+|   |   |-- Profile/                       ← Index
+|   |   └-- Shared/                        ← _Layout, Error, _ValidationScriptsPartial
+|   |
+|   |-- Models/                            ← ViewModels для кожного контролера
+|   |-- Middleware/                        ← ExceptionMiddleware, RequestLoggingMiddleware, RequestTimingMiddleware
+|   |-- Filters/                           ← RateLimitAttribute
+|   |-- Hubs/                              ← NotificationHub (SignalR)
+|   |-- Services/                          ← NotificationBackgroundService (hosted service)
+|   |-- Clients/                           ← MealDbClient (TheMealDB API)
+|   |-- wwwroot/
+|   |   |-- css/                           ← site.css, components.css, notifications.css
+|   |   |-- js/                            ← site.js, notifications.js, mealdb-create.js
+|   |   └-- lib/                           ← Bootstrap, jQuery
+|   |
+|   |-- Program.cs                         ← DI реєстрація, middleware, конфігурація
+|   |-- appsettings.json
+|   |-- appsettings.Development.json
+|   |-- appsettings.Staging.json
+|   └-- appsettings.Production.json
+|
+|-- PantryChef.Business/                   ← Бізнес-логіка
+|   |-- Interfaces/
+|   |   |-- IRecipeService.cs
+|   |   |-- IInventoryService.cs
+|   |   |-- IAccountService.cs
+|   |   |-- IProfileService.cs
+|   |   └-- INutritionService.cs
+|   |
+|   |-- Services/
+|   |   |-- RecipeService.cs               ← Підбір рецептів (повний/частковий збіг)
+|   |   |-- InventoryService.cs            ← Управління коморою, списання інгредієнтів
+|   |   |-- AccountService.cs              ← Реєстрація, зв'язок Identity ↔ User
+|   |   |-- ProfileService.cs              ← Цілі профілю, фізичні параметри
+|   |   └-- NutritionService.cs            ← Розрахунок калорій і макросів
+|   |
+|   └-- Models/
+|       |-- Result.cs                      ← Обгортка результату (IsSuccess, Data, ErrorMessage)
+|       |-- PantryChefSettings.cs          ← POCO для appsettings.json
+|       |-- RecipeMatchModels.cs           ← RecipeMatchResult, IngredientDeficit
+|       |-- RecipeManagementModels.cs      ← RecipeCreateModel, RecipeEditModel
+|       └-- UserProfileModels.cs           ← DTO профілю
+|
+|-- PantryChef.Data/                       ← Шар доступу до даних
+|   |-- Entities/
+|   |   |-- ApplicationUser.cs             ← ASP.NET Identity користувач
+|   |   |-- User.cs                        ← Доменний користувач (цілі, параметри)
+|   |   |-- Ingredient.cs                  ← Каталог інгредієнтів (макроси, категорія)
+|   |   |-- Recipe.cs                      ← Рецепт (опис, харчова цінність, категорія)
+|   |   |-- RecipeIngredient.cs            ← Зв'язок рецепт ↔ інгредієнт + кількість
+|   |   |-- UserIngredient.cs              ← Комора користувача
+|   |   |-- ShoppingListItem.cs            ← Список покупок
+|   |   |-- UserNutritionLog.cs            ← Щоденний журнал харчування
+|   |   |-- UserRecipe.cs                  ← Збережені рецепти користувача
+|   |   └-- SystemNotification.cs          ← Системні сповіщення
+|   |
+|   |-- Context/
+|   |   └-- PantryChefDbContext.cs         ← EF Core DbContext, seed-дані
+|   |
+|   |-- Interfaces/
+|   |   |-- IRepository.cs                 ← Базовий generic-інтерфейс
+|   |   |-- IRecipeRepository.cs
+|   |   |-- IIngredientRepository.cs
+|   |   |-- IUserRepository.cs
+|   |   |-- IUserIngredientRepository.cs
+|   |   |-- IUserRecipeRepository.cs
+|   |   |-- IShoppingListRepository.cs
+|   |   └-- IUserNutritionLogRepository.cs
+|   |
+|   |-- Repositories/
+|   |   |-- Repository.cs                  ← Базовий generic-репозиторій (CRUD)
+|   |   |-- RecipeRepository.cs
+|   |   |-- IngredientRepository.cs
+|   |   |-- UserRepository.cs
+|   |   |-- UserIngredientRepository.cs
+|   |   |-- UserRecipeRepository.cs
+|   |   |-- ShoppingListRepository.cs
+|   |   └-- UserNutritionLogRepository.cs
+|   |
+|   └-- Migrations/                        ← EF Core міграції
+|
+|-- PantryChef.Tests/                      ← xUnit тести з Moq
+|   |-- AccountControllerRegisterTests.cs
+|   |-- AccountControllerLoginTests.cs
+|   |-- RecipeControllerTests.cs
+|   |-- RecipeServiceTests.cs
+|   |-- InventoryServiceTests.cs
+|   |-- InventoryAndRecipeControllerTests.cs
+|   |-- ProfileControllerTests.cs
+|   |-- ProfileServiceTests.cs
+|   |-- NutritionServiceTests.cs
+|   |-- RateLimitAttributeTests.cs
+|   └-- FeatureTests.cs
+|
+|-- .github/
+|   └-- workflows/
+|       |-- azure-deploy.yml               ← Build → Test → Deploy на Azure (тільки push до main)
+|       └-- sonarcloud.yml                 ← Аналіз якості коду SonarQube Cloud
+|
+└-- PantryChef.sln
+```
